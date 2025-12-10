@@ -327,83 +327,85 @@ function AuthenticatedMessagesPage({
       setMessageInput("")
 
       // Refetch the thread messages to include the new one
-      fetchThreadMessages(selectedThread)
-
-      // Refetch threads to update the thread list
-      const fetchThreads = async () => {
-        try {
-          setIsLoading(true)
-
-          // Get all messages where the user is either sender or recipient
-          const { data, error } = await supabase
-            .from("messages")
-            .select(`
-              id,
-              sender_id,
-              recipient_id,
-              subject,
-              body,
-              is_read,
-              created_at
-            `)
-            .or(`sender_id.eq.${currentUserId},recipient_id.eq.${currentUserId}`)
-            .order("created_at", { ascending: false })
-
-          if (error) {
-            console.error("Error fetching messages:", error)
-            setThreads([])
-            return
-          }
-
-          // Process messages to create threads
-          const threadMap: Record<string, Thread> = {}
-
-          data.forEach(msg => {
-            // Determine the other participant in the conversation
-            const otherUserId = msg.sender_id === currentUserId ? msg.recipient_id : msg.sender_id;
-            const threadId = otherUserId; // Use the other user's ID as thread identifier
-
-            // If this thread doesn't exist yet, create it
-            if (!threadMap[threadId]) {
-              threadMap[threadId] = {
-                id: threadId,
-                sender_id: msg.sender_id,
-                recipient_id: msg.recipient_id,
-                subject: msg.subject || 'No Subject',
-                last_message: msg.body,
-                last_message_time: msg.created_at,
-                unread_count: msg.is_read ? 0 : (msg.recipient_id === currentUserId ? 1 : 0),
-                sender_name: 'Other Participant',
-              }
-            } else {
-              // Update if this is a more recent message
-              if (new Date(msg.created_at) > new Date(threadMap[threadId].last_message_time)) {
-                threadMap[threadId].last_message = msg.body;
-                threadMap[threadId].last_message_time = msg.created_at;
-              }
-              // Update unread count
-              if (!msg.is_read && msg.recipient_id === currentUserId) {
-                threadMap[threadId].unread_count += 1;
-              }
-            }
-          })
-
-          // Convert threadMap to array and sort by last message time
-          const userThreads = Object.values(threadMap);
-          userThreads.sort((a, b) =>
-            new Date(b.last_message_time).getTime() - new Date(a.last_message_time).getTime()
-          );
-
-          setThreads(userThreads);
-        } catch (error) {
-          console.error("Error in fetchThreads:", error)
-          setThreads([])
-        } finally {
-          setIsLoading(false)
+      setTimeout(() => {
+        if (selectedThread) {
+          fetchThreadMessages(selectedThread);
         }
-      }
+      }, 300); // Small delay to allow DB to update
 
-      fetchThreads();
+      // Refetch threads to update the thread list after a short delay
+      setTimeout(() => {
+        const fetchUpdatedThreads = async () => {
+          if (!currentUserId) return;
+
+          try {
+            // Only fetch updated threads if currently loading threads is not in progress
+            const { data, error } = await supabase
+              .from("messages")
+              .select(`
+                id,
+                sender_id,
+                recipient_id,
+                subject,
+                body,
+                is_read,
+                created_at
+              `)
+              .or(`sender_id.eq.${currentUserId},recipient_id.eq.${currentUserId}`)
+              .order("created_at", { ascending: false })
+
+            if (error) {
+              console.error("Error fetching messages:", error)
+              return
+            }
+
+            // Process messages to create threads
+            const threadMap: Record<string, Thread> = {}
+
+            data.forEach(msg => {
+              // Determine the other participant in the conversation
+              const otherUserId = msg.sender_id === currentUserId ? msg.recipient_id : msg.sender_id;
+              const threadId = otherUserId; // Use the other user's ID as thread identifier
+
+              // If this thread doesn't exist yet, create it
+              if (!threadMap[threadId]) {
+                threadMap[threadId] = {
+                  id: threadId,
+                  sender_id: msg.sender_id,
+                  recipient_id: msg.recipient_id,
+                  subject: msg.subject || 'No Subject',
+                  last_message: msg.body,
+                  last_message_time: msg.created_at,
+                  unread_count: msg.is_read ? 0 : (msg.recipient_id === currentUserId ? 1 : 0),
+                  sender_name: 'Other Participant',
+                }
+              } else {
+                // Update if this is a more recent message
+                if (new Date(msg.created_at) > new Date(threadMap[threadId].last_message_time)) {
+                  threadMap[threadId].last_message = msg.body;
+                  threadMap[threadId].last_message_time = msg.created_at;
+                }
+                // Update unread count
+                if (!msg.is_read && msg.recipient_id === currentUserId) {
+                  threadMap[threadId].unread_count += 1;
+                }
+              }
+            })
+
+            // Convert threadMap to array and sort by last message time
+            const userThreads = Object.values(threadMap);
+            userThreads.sort((a, b) =>
+              new Date(b.last_message_time).getTime() - new Date(a.last_message_time).getTime()
+            );
+
+            setThreads(userThreads);
+          } catch (error) {
+            console.error("Error in fetchUpdatedThreads:", error)
+          }
+        }
+
+        fetchUpdatedThreads();
+      }, 500);
     } catch (error) {
       console.error("Error sending message:", error)
     }
