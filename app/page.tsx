@@ -9,6 +9,7 @@ import { Heart, MapPin, Star, LogOut, User } from "lucide-react"
 import Image from "next/image"
 import { useLanguage } from "@/lib/language-context";
 import LanguageSelector from "@/components/ui/language-selector";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
 
 interface Listing {
   id: string
@@ -102,7 +103,7 @@ export default function HomePage() {
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="sticky top-0 z-50 bg-white border-b">
+      <header className="sticky top-0 z-50 bg-background border-b">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2">
             <div className="text-2xl font-bold text-red-500">Airbnb</div>
@@ -121,6 +122,7 @@ export default function HomePage() {
 
           <div className="flex items-center gap-4">
             <LanguageSelector />
+            <ThemeToggle />
             {user ? (
               <>
                 {/* Profile button with avatar */}

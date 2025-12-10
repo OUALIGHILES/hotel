@@ -67,7 +67,7 @@ export default function PackagesPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
       {/* Header */}
-      <header className="sticky top-0 z-50 bg-white border-b">
+      <header className="sticky top-0 z-50 bg-background border-b">
         <div className="container mx-auto px-4 py-4 flex items-center gap-4">
           <Link href="/" className="flex items-center gap-2 hover:opacity-80">
             <ArrowLeft className="w-5 h-5" />

@@ -31,6 +31,8 @@ import { createClient } from "@/lib/supabase/client"
 import { useRouter } from "next/navigation"
 import { useLanguage } from "@/lib/language-context";
 import LanguageSelector from "@/components/ui/language-selector";
+import { useTheme } from "@/lib/theme-context";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
 
 interface PMSLayoutProps {
   children: React.ReactNode
@@ -124,12 +126,15 @@ export function PMSLayout({ children }: PMSLayoutProps) {
       {/* Main Content */}
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Top Bar */}
-        <header className="bg-white border-b h-16 flex items-center justify-between px-6 z-20">
+        <header className="bg-background border-b h-16 flex items-center justify-between px-6 z-20">
           <button onClick={() => setIsOpen(!isOpen)} className="lg:hidden">
             <Menu className="w-5 h-5" />
           </button>
-          <div className="text-sm text-muted-foreground">{t('welcomeToPMS')}</div>
-          <LanguageSelector />
+          <div className="text-sm text-foreground">{t('welcomeToPMS')}</div>
+          <div className="flex items-center space-x-2">
+            <ThemeToggle />
+            <LanguageSelector />
+          </div>
         </header>
 
         {/* Page Content */}

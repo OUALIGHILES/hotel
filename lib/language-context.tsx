@@ -111,6 +111,7 @@ const translations = {
     profileCreatedDescription: 'Your profile has been created.',
     profileUpdateFailed: 'Profile update failed',
     profileUpdateError: 'An error occurred while updating your profile.',
+    profileNotFoundError: 'Profile not found. Please log out and log back in to create your profile.',
     selectCity: 'Select City',
     selectCityPlaceholder: 'Choose a city',
     riyadh: 'Riyadh',
@@ -129,6 +130,10 @@ const translations = {
     addUnit: 'Add Unit',
     unitAddedSuccessfully: 'Unit added successfully',
     unitUpdatedSuccessfully: 'Unit updated successfully',
+    darkMode: 'Dark Mode',
+    lightMode: 'Light Mode',
+    systemMode: 'System Mode',
+    currentTheme: 'Current Theme',
   },
   ar: {
     adminDashboard: 'لوحة تحكم المشرف',
@@ -225,6 +230,7 @@ const translations = {
     profileCreatedDescription: 'تم إنشاء ملفك الشخصي.',
     profileUpdateFailed: 'فشل تحديث الملف الشخصي',
     profileUpdateError: 'حدث خطأ أثناء تحديث ملفك الشخصي.',
+    profileNotFoundError: 'الملف الشخصي غير موجود. يرجى تسجيل الخروج ثم تسجيل الدخول مجددًا لإنشاء ملفك الشخصي.',
     selectCity: 'اختر المدينة',
     selectCityPlaceholder: 'اختر مدينة',
     riyadh: 'الرياض',
@@ -243,6 +249,9 @@ const translations = {
     addUnit: 'إضافة وحدة',
     unitAddedSuccessfully: 'تم إضافة الوحدة بنجاح',
     unitUpdatedSuccessfully: 'تم تحديث الوحدة بنجاح',
+    darkMode: 'الوضع المظلم',
+    lightMode: 'الوضع الفاتح',
+    systemMode: 'وضع النظام',
   }
 };
 

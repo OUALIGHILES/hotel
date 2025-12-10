@@ -9,6 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { LogOut, BarChart3, Users, Home, Calendar, User } from "lucide-react"
 import { useLanguage } from "@/lib/language-context";
 import LanguageSelector from "@/components/ui/language-selector";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
 
 export default function AdminDashboard() {
   const router = useRouter()
@@ -99,10 +100,11 @@ export default function AdminDashboard() {
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="sticky top-0 z-50 bg-white border-b">
+      <header className="sticky top-0 z-50 bg-background border-b">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="text-xl font-bold">{t('adminDashboard')}</div>
+          <div className="text-xl font-bold text-foreground">{t('adminDashboard')}</div>
           <div className="flex items-center space-x-2">
+            <ThemeToggle />
             <LanguageSelector />
             <Button
               variant="ghost"

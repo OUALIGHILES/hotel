@@ -222,72 +222,36 @@ export default function ProfilePage() {
         .from('profile')
         .getPublicUrl(fileName);
 
-      // Update profile with the new avatar URL
-      const { error: updateError } = await supabase
-        .from("profiles")
-        .update({
-          avatar_url: publicUrlData.publicUrl,
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", user.id);
+      // Update profile via API route (which uses service role)
+      const response = await fetch('/api/profile', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ ...formData, avatar_url: publicUrlData.publicUrl }),
+      });
 
-      if (updateError) {
-        console.error("Error updating profile with avatar:", updateError);
-        // If update fails due to missing profile, try creating one first
-        if (updateError.code === 'PGRST116' || updateError.message.includes('Row not found')) {
-          // Profile doesn't exist, create it with avatar
-          const { error: insertError } = await supabase
-            .from("profiles")
-            .insert({
-              id: user.id,
-              full_name: user.full_name || user.email.split('@')[0],
-              avatar_url: publicUrlData.publicUrl,
-              is_host: false,
-              is_premium: user.is_premium || false,
-              created_at: new Date().toISOString(),
-              updated_at: new Date().toISOString(),
-            });
-
-          if (insertError) {
-            console.error("Error creating profile with avatar:", insertError);
-            toast.error(t('uploadError'), {
-              description: insertError.message || t('updateError'),
-              icon: <AlertCircle className="w-4 h-4 text-red-500" />,
-            });
-            return;
-          } else {
-            // Success creating profile with avatar
-            toast.success(t('profileCreatedSuccessfully'), {
-              description: t('profileCreatedDescription'),
-              icon: <CheckCircle2 className="w-4 h-4 text-green-500" />,
-            });
-          }
-          // Update local state
-          setProfile({
-            ...profile,
-            avatar_url: publicUrlData.publicUrl,
-            full_name: user.full_name || user.email.split('@')[0]
-          });
-        } else {
-          toast.error(t('uploadError'), {
-            description: updateError.message || t('updateError'),
-            icon: <AlertCircle className="w-4 h-4 text-red-500" />,
-          });
-        }
-        return;
-      } else {
-        // Success updating profile with avatar
-        toast.success(t('profileUpdatedSuccessfully'), {
-          description: t('profileUpdatedDescription'),
-          icon: <CheckCircle2 className="w-4 h-4 text-green-500" />,
-        });
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to update profile with avatar');
       }
 
+      const { profile: updatedProfile } = await response.json();
+
+      // Success updating profile with avatar
+      toast.success(t('profileUpdatedSuccessfully'), {
+        description: t('profileUpdatedDescription'),
+        icon: <CheckCircle2 className="w-4 h-4 text-green-500" />,
+      });
+
       // Update local state
-      setProfile({ ...profile, avatar_url: publicUrlData.publicUrl });
+      setProfile(updatedProfile);
     } catch (error: any) {
       console.error("Error in image upload:", error);
-      alert(t('uploadError'));
+      toast.error(t('uploadError'), {
+        description: error.message || t('uploadError'),
+        icon: <AlertCircle className="w-4 h-4 text-red-500" />,
+      });
     } finally {
       setIsUploading(false);
       setUploadProgress(0);
@@ -299,75 +263,35 @@ export default function ProfilePage() {
     setIsUpdating(true);
 
     try {
-      const { error } = await supabase
-        .from("profiles")
-        .update({
-          ...formData,
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", user.id);
+      const response = await fetch('/api/profile', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
+      });
 
-      if (error) {
-        console.error("Error updating profile:", error);
-        // Also try creating a profile if it doesn't exist
-        if (error.code === 'PGRST116' || error.message.includes('Row not found')) {
-          // Profile doesn't exist, create it
-          // First, get the actual authenticated user from Supabase auth
-          const { data: { user: authUser }, error: authError } = await supabase.auth.getUser();
-
-          if (authError || !authUser) {
-            console.error("Authentication error during profile creation:", authError);
-            toast.error(t('profileUpdateFailed'), {
-              description: 'Authentication error. Please log out and log back in.',
-              icon: <AlertCircle className="w-4 h-4 text-red-500" />,
-            });
-            return;
-          }
-
-          const { error: insertError } = await supabase
-            .from("profiles")
-            .insert({
-              id: authUser.id, // Use the auth user ID to ensure RLS compliance
-              ...formData,
-              is_host: false,
-              is_premium: user.is_premium || false,
-              created_at: new Date().toISOString(),
-              updated_at: new Date().toISOString(),
-            });
-
-          if (insertError) {
-            console.error("Error creating profile:", insertError);
-            toast.error(t('profileUpdateFailed'), {
-              description: insertError.message || t('profileUpdateError'),
-              icon: <AlertCircle className="w-4 h-4 text-red-500" />,
-            });
-            return; // Don't continue if creation fails
-          } else {
-            // Success creating profile
-            toast.success(t('profileCreatedSuccessfully'), {
-              description: t('profileCreatedDescription'),
-              icon: <CheckCircle2 className="w-4 h-4 text-green-500" />,
-            });
-          }
-        } else {
-          toast.error(t('profileUpdateFailed'), {
-            description: error.message || t('profileUpdateError'),
-            icon: <AlertCircle className="w-4 h-4 text-red-500" />,
-          });
-          throw error; // Re-throw if it's a different error
-        }
-      } else {
-        // Success updating profile
-        toast.success(t('profileUpdatedSuccessfully'), {
-          description: t('profileUpdatedDescription'),
-          icon: <CheckCircle2 className="w-4 h-4 text-green-500" />,
-        });
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to update profile');
       }
 
+      const { profile: updatedProfile } = await response.json();
+
+      // Success updating profile
+      toast.success(t('profileUpdatedSuccessfully'), {
+        description: t('profileUpdatedDescription'),
+        icon: <CheckCircle2 className="w-4 h-4 text-green-500" />,
+      });
+
       // Update local state
-      setProfile({ ...profile, ...formData });
+      setProfile(updatedProfile);
     } catch (error: any) {
       console.error("Error updating profile:", error);
+      toast.error(t('profileUpdateFailed'), {
+        description: error.message || t('profileUpdateError'),
+        icon: <AlertCircle className="w-4 h-4 text-red-500" />,
+      });
     } finally {
       setIsUpdating(false);
     }
