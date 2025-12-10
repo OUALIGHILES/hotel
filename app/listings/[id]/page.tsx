@@ -285,6 +285,93 @@ export default function ListingDetailPage() {
                 {isBooking ? "Booking..." : "Book Now"}
               </Button>
 
+              {/* Send Message to Owner Button */}
+              <Button
+                className="w-full mb-4"
+                variant="outline"
+                onClick={() => {
+                  // Don't check authentication on button click, just show the form
+                  document.getElementById('message-form')?.classList.toggle('hidden');
+                }}
+              >
+                Send Message to Owner
+              </Button>
+
+              {/* Message Form - initially hidden */}
+              <div id="message-form" className="hidden mb-4 p-4 border rounded-lg bg-gray-50">
+                <h3 className="font-medium mb-3">Send Message to Owner</h3>
+                <div className="space-y-3">
+                  <textarea
+                    id="message-content"
+                    placeholder="Write your message here..."
+                    className="w-full px-3 py-2 border rounded-lg bg-background text-foreground min-h-[100px]"
+                  />
+                  <Button
+                    className="w-full"
+                    onClick={async () => {
+                      const messageContent = (document.getElementById('message-content') as HTMLTextAreaElement)?.value;
+                      if (!messageContent || messageContent.trim() === '') {
+                        alert('Please enter a message');
+                        return;
+                      }
+
+                      // Check if user is logged in - first try Supabase auth, then fallback to custom auth check
+                      let userId = null;
+
+                      // Try getting user from Supabase auth first
+                      const { data: { user: supaUser }, error: userError } = await supabase.auth.getUser();
+                      if (supaUser && !userError) {
+                        userId = supaUser.id;
+                      } else {
+                        // If Supabase auth fails, check with our custom auth system
+                        try {
+                          const authCheckResponse = await fetch('/api/auth/check');
+                          if (authCheckResponse.ok) {
+                            const { user } = await authCheckResponse.json();
+                            if (user) {
+                              userId = user.id;
+                            }
+                          }
+                        } catch (error) {
+                          console.error('Error checking auth via API:', error);
+                        }
+                      }
+
+                      if (!userId) {
+                        alert('Please log in to send a message');
+                        router.push('/auth/login');
+                        return;
+                      }
+
+                      // Send message to owner
+                      const { error: messageError } = await supabase
+                        .from('messages')
+                        .insert({
+                          sender_id: userId,
+                          recipient_id: listing?.host_id,
+                          subject: `Inquiry about ${listing?.title}`,
+                          body: messageContent,
+                          reservation_id: null // Not linked to a specific reservation
+                        });
+
+                      if (messageError) {
+                        console.error('Error sending message:', messageError);
+                        alert('There was an issue sending your message. Please try again.');
+                        return;
+                      }
+
+                      alert('Message sent successfully! The owner will contact you soon.');
+
+                      // Reset form and hide it
+                      (document.getElementById('message-content') as HTMLTextAreaElement).value = '';
+                      document.getElementById('message-form')?.classList.add('hidden');
+                    }}
+                  >
+                    Send Message
+                  </Button>
+                </div>
+              </div>
+
               <p className="text-xs text-gray-600 text-center">You won't be charged yet</p>
             </Card>
           </div>
