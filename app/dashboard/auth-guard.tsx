@@ -6,14 +6,14 @@ import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Loader2 } from "lucide-react"
+import { Loader2, Lock } from "lucide-react"
 import Link from "next/link"
 
 interface AuthGuardProps {
   children: React.ReactNode
 }
 
-export function AuthGuard({ children }: AuthGuardProps) {
+export default function DashboardAuthGuard({ children }: AuthGuardProps) {
   const [isAuthorized, setIsAuthorized] = useState<boolean | null>(null)
   const router = useRouter()
 
@@ -36,8 +36,7 @@ export function AuthGuard({ children }: AuthGuardProps) {
           return
         }
 
-        // For this implementation, we're just checking authentication
-        // You can extend this to check for subscriptions if needed
+        // User is authenticated, allow access to dashboard
         setIsAuthorized(true)
       } catch (error) {
         console.error("Error checking authentication:", error)
@@ -63,14 +62,14 @@ export function AuthGuard({ children }: AuthGuardProps) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center p-4">
         <Card className="max-w-md w-full p-8 text-center">
-          <h1 className="text-2xl font-bold mb-4">Premium Access Required</h1>
+          <Lock className="w-12 h-12 mx-auto mb-4 text-red-500" />
+          <h2 className="text-2xl font-bold mb-2">Access Denied</h2>
           <p className="text-gray-600 mb-6">
-            You need an active premium subscription to access the PMS dashboard. Upgrade now to unlock unlimited
-            property management features.
+            You are not authenticated. Please log in to access your properties.
           </p>
           <div className="flex flex-col gap-3">
-            <Link href="/packages">
-              <Button className="w-full bg-blue-600 hover:bg-blue-700">View Subscription Plans</Button>
+            <Link href="/auth/login">
+              <Button className="w-full bg-blue-600 hover:bg-blue-700">Go to Login</Button>
             </Link>
             <Link href="/">
               <Button variant="outline" className="w-full bg-transparent">

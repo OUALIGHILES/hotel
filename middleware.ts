@@ -10,7 +10,8 @@ export async function middleware(request: NextRequest) {
                            request.nextUrl.pathname.startsWith("/admin")
 
   // Define premium routes that require premium status
-  const isPremiumRoute = request.nextUrl.pathname.startsWith("/dashboard")
+  const isPremiumRoute = request.nextUrl.pathname.startsWith("/premium") ||
+                         request.nextUrl.pathname.startsWith("/api/premium")
 
   // Redirect to login if trying to access a protected route without authentication
   if (isProtectedRoute && !authToken) {

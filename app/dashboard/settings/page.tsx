@@ -16,15 +16,15 @@ export default function SettingsPage() {
           <CardContent className="space-y-4">
             <div>
               <label className="block text-sm font-medium mb-1">Full Name</label>
-              <input type="text" className="w-full px-3 py-2 border rounded-lg" placeholder="Your name" />
+              <input type="text" className="w-full px-3 py-2 border rounded-lg bg-background text-foreground" placeholder="Your name" />
             </div>
             <div>
               <label className="block text-sm font-medium mb-1">Email</label>
-              <input type="email" className="w-full px-3 py-2 border rounded-lg" placeholder="your@email.com" />
+              <input type="email" className="w-full px-3 py-2 border rounded-lg bg-background text-foreground" placeholder="your@email.com" />
             </div>
             <div>
               <label className="block text-sm font-medium mb-1">Business Name</label>
-              <input type="text" className="w-full px-3 py-2 border rounded-lg" placeholder="Business name" />
+              <input type="text" className="w-full px-3 py-2 border rounded-lg bg-background text-foreground" placeholder="Business name" />
             </div>
             <Button>Save Changes</Button>
           </CardContent>

@@ -28,85 +28,72 @@ export async function GET(request: NextRequest) {
 
     const supabase = await createClient();
 
-    // Get user's properties first (since units are linked to properties)
-    const { data: propertiesData, error: propertiesError } = await supabase
-      .from("properties")
-      .select("id")
-      .eq("user_id", user.id);
+    // Get user's units with property information (including city)
+    const { data: unitsData, error: unitsError } = await supabase
+      .from("units")
+      .select(`
+        id,
+        name,
+        status,
+        property_id,
+        properties!inner (
+          id,
+          city
+        )
+      `)
+      .eq("properties.user_id", user.id)
+      .order("name", { ascending: true });
 
-    if (propertiesError) {
+    if (unitsError) {
       return new Response(
-        JSON.stringify({ error: "Database error fetching properties" }),
+        JSON.stringify({ error: "Database error fetching units" }),
         { status: 500, headers: { "Content-Type": "application/json" } }
       );
     }
 
-    const propertyIds = propertiesData?.map(prop => prop.id) || [];
-    
-    if (propertyIds.length > 0) {
-      // Get units with their current status for user's properties
-      const { data: unitsData, error: unitsError } = await supabase
-        .from("units")
-        .select("id, name, status, property_id")
-        .in("property_id", propertyIds)
-        .order("name", { ascending: true });
+    // For each unit, check if it has any active reservations that would affect status
+    const unitsWithStatus = await Promise.all(unitsData?.map(async (unit) => {
+      // Check if unit has any active reservations (checked_in, confirmed, or reserved for today)
+      const { data: reservationsData, error: reservationsError } = await supabase
+        .from("reservations")
+        .select("status, check_in_date, check_out_date")
+        .eq("unit_id", unit.id)
+        .or(`status.eq.checked_in,status.eq.confirmed`);
 
-      if (unitsError) {
-        return new Response(
-          JSON.stringify({ error: "Database error fetching units" }),
-          { status: 500, headers: { "Content-Type": "application/json" } }
-        );
+      if (reservationsError) {
+        console.error("Error fetching reservations for unit:", unit.id, reservationsError);
       }
 
-      // For each unit, check if it has any active reservations that would affect status
-      const unitsWithStatus = await Promise.all(unitsData?.map(async (unit) => {
-        // Check if unit has any active reservations (checked_in, confirmed, or reserved for today)
-        const { data: reservationsData, error: reservationsError } = await supabase
-          .from("reservations")
-          .select("status, check_in_date, check_out_date")
-          .eq("unit_id", unit.id)
-          .or(`status.eq.checked_in,status.eq.confirmed`);
+      let finalStatus = unit.status; // Default to the unit's status from the database
 
-        if (reservationsError) {
-          console.error("Error fetching reservations for unit:", unit.id, reservationsError);
+      if (reservationsData && reservationsData.length > 0) {
+        // If there are active reservations, update status accordingly
+        const today = new Date().toISOString().split('T')[0];
+
+        const activeReservation = reservationsData.find(res => {
+          // Check if today is between check_in and check_out dates
+          const checkInDate = new Date(res.check_in_date).toISOString().split('T')[0];
+          const checkOutDate = new Date(res.check_out_date).toISOString().split('T')[0];
+          return today >= checkInDate && today <= checkOutDate;
+        });
+
+        if (activeReservation) {
+          finalStatus = "occupied"; // Unit is currently in use
+        } else if (reservationsData.some(res => res.status === "reserved")) {
+          finalStatus = "reserved"; // Unit is reserved for the future
         }
+      }
 
-        let finalStatus = unit.status; // Default to the unit's status from the database
+      return {
+        id: unit.id,
+        name: unit.name,
+        status: finalStatus,
+        property_city: unit.properties?.city // Include the city from properties
+      };
+    }) || []);
 
-        if (reservationsData && reservationsData.length > 0) {
-          // If there are active reservations, update status accordingly
-          const today = new Date().toISOString().split('T')[0];
-          
-          const activeReservation = reservationsData.find(res => {
-            // Check if today is between check_in and check_out dates
-            const checkInDate = new Date(res.check_in_date).toISOString().split('T')[0];
-            const checkOutDate = new Date(res.check_out_date).toISOString().split('T')[0];
-            return today >= checkInDate && today <= checkOutDate;
-          });
-
-          if (activeReservation) {
-            finalStatus = "occupied"; // Unit is currently in use
-          } else if (reservationsData.some(res => res.status === "reserved")) {
-            finalStatus = "reserved"; // Unit is reserved for the future
-          }
-        }
-
-        return {
-          id: unit.id,
-          name: unit.name,
-          status: finalStatus
-        };
-      }) || []);
-
-      return new Response(
-        JSON.stringify({ units: unitsWithStatus }),
-        { status: 200, headers: { "Content-Type": "application/json" } }
-      );
-    }
-
-    // Return empty array if no properties
     return new Response(
-      JSON.stringify({ units: [] }),
+      JSON.stringify({ units: unitsWithStatus }),
       { status: 200, headers: { "Content-Type": "application/json" } }
     );
   } catch (error: any) {

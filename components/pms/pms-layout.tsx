@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
@@ -26,6 +26,8 @@ import {
   Menu,
   X,
   LogOut,
+  User,
+  Home,
 } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
 import { useRouter } from "next/navigation"
@@ -38,34 +40,64 @@ interface PMSLayoutProps {
   children: React.ReactNode
 }
 
-const navItems = [
-  { label: "Dashboard", href: "/dashboard/home", icon: LayoutDashboard },
-  { label: "Properties", href: "/dashboard/properties", icon: Building2 },
-  { label: "Units", href: "/dashboard/units", icon: DoorOpen },
-  { label: "Occupancy", href: "/dashboard/occupancy", icon: Calendar },
-  { label: "Reservations", href: "/dashboard/reservations", icon: BookOpen },
-  { label: "Guests", href: "/dashboard/guests", icon: Users },
-  { label: "Messages", href: "/dashboard/messages", icon: MessageSquare },
-  { label: "Channels", href: "/dashboard/channels", icon: Radio },
-  { label: "Smart Locks", href: "/dashboard/smart-locks", icon: Lock },
-  { label: "Tasks", href: "/dashboard/tasks", icon: CheckSquare2 },
-  { label: "Invoices", href: "/dashboard/invoices", icon: FileText },
-  { label: "Receipts", href: "/dashboard/receipts", icon: ReceiptText },
-  { label: "Reports", href: "/dashboard/reports", icon: TrendingUp },
-  { label: "Payment Links", href: "/dashboard/payment-links", icon: Link2 },
-  { label: "Settings", href: "/dashboard/settings", icon: Settings },
-]
-
 export function PMSLayout({ children }: PMSLayoutProps) {
   const [isOpen, setIsOpen] = useState(false)
+  const [user, setUser] = useState<any>(null)
+  const [isLoading, setIsLoading] = useState(true)
   const pathname = usePathname()
   const router = useRouter()
   const supabase = createClient()
   const { t } = useLanguage(); // Get the translation function
 
+  // Navigation items must be defined inside the component to access the t function
+  const navItems = [
+    { label: t('dashboard'), href: "/dashboard/home", icon: LayoutDashboard },
+    { label: t('properties'), href: "/dashboard/properties", icon: Building2 },
+    { label: t('units'), href: "/dashboard/units", icon: DoorOpen },
+    { label: t('occupancy'), href: "/dashboard/occupancy", icon: Calendar },
+    { label: t('reservations'), href: "/dashboard/reservations", icon: BookOpen },
+    { label: t('guests'), href: "/dashboard/guests", icon: Users },
+    { label: t('messages'), href: "/dashboard/messages", icon: MessageSquare },
+    { label: t('channels'), href: "/dashboard/channels", icon: Radio },
+    { label: t('smartLocks'), href: "/dashboard/smart-locks", icon: Lock },
+    { label: t('tasks'), href: "/dashboard/tasks", icon: CheckSquare2 },
+    { label: t('invoices'), href: "/dashboard/invoices", icon: FileText },
+    { label: t('receipts'), href: "/dashboard/receipts", icon: ReceiptText },
+    { label: t('reports'), href: "/dashboard/reports", icon: TrendingUp },
+    { label: t('paymentLinks'), href: "/dashboard/payment-links", icon: Link2 },
+    { label: t('settings'), href: "/dashboard/settings", icon: Settings },
+  ]
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      try {
+        const response = await fetch("/api/auth/check");
+        if (response.ok) {
+          const result = await response.json();
+          if (result.user) {
+            setUser(result.user);
+          } else {
+            // If no user found, redirect to login
+            router.push("/auth/login");
+          }
+        } else {
+          // If auth check fails, redirect to login
+          router.push("/auth/login");
+        }
+      } catch (error) {
+        console.error("Error fetching user:", error);
+        router.push("/auth/login");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchUser();
+  }, [router]);
+
   const handleLogout = async () => {
-    await supabase.auth.signOut()
-    router.push("/")
+    await fetch("/api/auth/logout", { method: "POST" });
+    router.push("/");
   }
 
   return (
@@ -131,9 +163,31 @@ export function PMSLayout({ children }: PMSLayoutProps) {
             <Menu className="w-5 h-5" />
           </button>
           <div className="text-sm text-foreground">{t('welcomeToPMS')}</div>
-          <div className="flex items-center space-x-2">
-            <ThemeToggle />
-            <LanguageSelector />
+          <div className="flex items-center space-x-4">
+            <Link href="/" className="p-2 rounded-full hover:bg-accent">
+              <Home className="w-5 h-5 text-foreground" />
+            </Link>
+            {user && (
+              <div className="flex items-center space-x-2">
+                <div className="w-8 h-8 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
+                  <User className="w-4 h-4 text-gray-600 dark:text-gray-300" />
+                </div>
+                <div className="hidden md:block">
+                  <div className="text-sm font-medium text-foreground">{user.full_name || user.email?.split('@')[0]}</div>
+                  <div className="text-xs text-muted-foreground">{user.email}</div>
+                </div>
+              </div>
+            )}
+            <div className="flex items-center space-x-2">
+              <ThemeToggle />
+              <LanguageSelector />
+            </div>
+            {user && (
+              <Button variant="outline" size="sm" onClick={handleLogout}>
+                <LogOut className="w-4 h-4 mr-2" />
+                {t('logout')}
+              </Button>
+            )}
           </div>
         </header>
 

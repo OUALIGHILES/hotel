@@ -4,7 +4,8 @@ import { useState, useEffect } from "react"
 import { createClient } from "@/lib/supabase/client"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Plus, Edit, Trash2, Filter } from "lucide-react"
+import { Plus, Edit, Trash2, Filter, Lock } from "lucide-react"
+import { useRouter } from "next/navigation"
 
 interface Reservation {
   id: string
@@ -20,18 +21,35 @@ interface Reservation {
 export default function ReservationsPage() {
   const [reservations, setReservations] = useState<Reservation[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const [isAuthenticated, setIsAuthenticated] = useState(true) // Track authentication state
   const supabase = createClient()
+  const router = useRouter()
 
   useEffect(() => {
-    fetchReservations()
+    checkAuthenticationAndFetchReservations()
   }, [])
 
-  const fetchReservations = async () => {
+  const checkAuthenticationAndFetchReservations = async () => {
     try {
-      // First get the authenticated user
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        console.error("User not authenticated");
+      // Check if user is authenticated using the same method as the header
+      const response = await fetch("/api/auth/check");
+      if (!response.ok) {
+        console.error("User not authenticated via API check");
+        setIsAuthenticated(false);
+        return;
+      }
+
+      const result = await response.json();
+      if (!result.user) {
+        console.error("No user found in auth check");
+        setIsAuthenticated(false);
+        return;
+      }
+
+      const userId = result.user.id;
+      if (!userId) {
+        console.error("User ID not found in API response");
+        setIsAuthenticated(false);
         return;
       }
 
@@ -39,7 +57,7 @@ export default function ReservationsPage() {
       const { data: propertiesData, error: propertiesError } = await supabase
         .from("properties")
         .select("id")
-        .eq("user_id", user.id);
+        .eq("user_id", userId);
 
       if (propertiesError) {
         console.error("Error fetching properties:", propertiesError);
@@ -84,9 +102,29 @@ export default function ReservationsPage() {
       setReservations(data || [])
     } catch (error) {
       console.error("Error fetching reservations:", error)
+      setIsAuthenticated(false);
     } finally {
       setIsLoading(false)
     }
+  }
+
+  // Show authentication error message if not authenticated
+  if (!isAuthenticated) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-6">
+        <Lock className="w-12 h-12 text-amber-500" />
+        <h2 className="text-2xl font-bold text-center">Access Denied</h2>
+        <p className="text-gray-600 text-center max-w-md">
+          You are not authenticated. Please log in to access your reservations.
+        </p>
+        <Button
+          onClick={() => router.push("/auth/login")}
+          className="bg-amber-500 hover:bg-amber-600"
+        >
+          Go to Login
+        </Button>
+      </div>
+    );
   }
 
   const statusColors = {

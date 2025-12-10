@@ -4,8 +4,9 @@ import { useState, useEffect } from "react"
 import { createClient } from "@/lib/supabase/client"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Plus, Edit, Trash2, MapPin, Clock } from "lucide-react"
+import { Plus, Edit, Trash2, MapPin, Clock, Lock } from "lucide-react"
 import { useLanguage } from "@/lib/language-context";
+import { useRouter } from "next/navigation";
 
 interface Property {
   id: string
@@ -22,37 +23,45 @@ export default function PropertiesPage() {
   const [properties, setProperties] = useState<Property[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
+  const [isAuthenticated, setIsAuthenticated] = useState(true) // Track authentication state
   const { t } = useLanguage(); // Get the translation function
   const supabase = createClient()
+  const router = useRouter()
 
   useEffect(() => {
-    fetchProperties()
+    checkAuthenticationAndFetchProperties()
   }, [])
 
-  const fetchProperties = async () => {
+  const checkAuthenticationAndFetchProperties = async () => {
     try {
-      // Get the authenticated user from the API
-      const userResponse = await fetch("/api/auth/check");
-      if (!userResponse.ok) {
-        console.error("User not authenticated");
-        setProperties([]);
+      // Check if user is authenticated using the same method as the header
+      const response = await fetch("/api/auth/check");
+      if (!response.ok) {
+        console.error("User not authenticated via API check");
+        setIsAuthenticated(false);
         return;
       }
 
-      const userData = await userResponse.json();
-      if (!userData.user) {
-        console.error("User not authenticated");
-        setProperties([]);
+      const result = await response.json();
+      if (!result.user) {
+        console.error("No user found in auth check");
+        setIsAuthenticated(false);
+        return;
+      }
+
+      const userId = result.user.id;
+      if (!userId) {
+        console.error("User ID not found in API response");
+        setIsAuthenticated(false);
         return;
       }
 
       const { data, error } = await supabase
         .from("properties")
         .select("*")
-        .eq("user_id", userData.user.id)
+        .eq("user_id", userId)
 
       if (error) {
-        // If it's a foreign key constraint error, the user IDs don't match the auth.users table
         console.error("Error fetching properties:", error);
         // Only show the error to the user if it's not a foreign key issue
         if (error.message.includes("foreign key") || error.message.includes("violates")) {
@@ -65,6 +74,7 @@ export default function PropertiesPage() {
       setProperties(data || [])
     } catch (error) {
       console.error("Error fetching properties:", error)
+      setIsAuthenticated(false);
     } finally {
       setIsLoading(false)
     }
@@ -80,19 +90,33 @@ export default function PropertiesPage() {
       const address = formData.get('address') as string;
       const city = formData.get('city') as string;
       const country = formData.get('country') as string;
+      const checkInTime = formData.get('check_in_time') as string;
+      const checkOutTime = formData.get('check_out_time') as string;
 
       // Validate inputs
-      if (!name || !address || !city || !country) {
+      if (!name || !address || !city || !country || !checkInTime || !checkOutTime) {
         alert('Please fill in all required fields');
         return;
       }
 
-      // First get the authenticated user using Supabase Auth
-      const { data: { user }, error: authError } = await supabase.auth.getUser();
-      if (authError || !user) {
-        alert("User not authenticated");
+      // First get the authenticated user using the same method as the header
+      const response = await fetch("/api/auth/check");
+      if (!response.ok) {
+        console.error("User not authenticated via API check");
+        setIsAuthenticated(false);
+        router.push("/auth/login"); // Redirect to login
         return;
       }
+
+      const result = await response.json();
+      if (!result.user) {
+        console.error("No user found in auth check");
+        setIsAuthenticated(false);
+        router.push("/auth/login"); // Redirect to login
+        return;
+      }
+
+      const userId = result.user.id;
 
       // Insert the new property into the database
       const { error } = await supabase
@@ -102,9 +126,9 @@ export default function PropertiesPage() {
           address,
           city,
           country,
-          user_id: user.id, // Use Supabase user ID
-          check_in_time: "14:00:00", // Default check-in time
-          check_out_time: "11:00:00", // Default check-out time
+          user_id: userId, // Use user ID from API response
+          check_in_time: checkInTime,
+          check_out_time: checkOutTime,
           currency: "USD" // Default currency
         }]);
 
@@ -115,7 +139,7 @@ export default function PropertiesPage() {
       }
 
       // Refresh the properties list
-      await fetchProperties();
+      await checkAuthenticationAndFetchProperties();
       setShowForm(false);
     } catch (error) {
       console.error("Error adding property:", error);
@@ -132,18 +156,30 @@ export default function PropertiesPage() {
 
     setIsLoading(true);
     try {
-      // Get the authenticated user using Supabase Auth
-      const { data: { user }, error: authError } = await supabase.auth.getUser();
-      if (authError || !user) {
-        alert("User not authenticated");
+      // First get the authenticated user using the same method as the header
+      const response = await fetch("/api/auth/check");
+      if (!response.ok) {
+        console.error("User not authenticated via API check");
+        setIsAuthenticated(false);
+        router.push("/auth/login"); // Redirect to login
         return;
       }
+
+      const result = await response.json();
+      if (!result.user) {
+        console.error("No user found in auth check");
+        setIsAuthenticated(false);
+        router.push("/auth/login"); // Redirect to login
+        return;
+      }
+
+      const userId = result.user.id;
 
       const { error } = await supabase
         .from("properties")
         .delete()
         .eq("id", propertyId)
-        .eq("user_id", user.id); // Ensure user can only delete their own properties
+        .eq("user_id", userId); // Ensure user can only delete their own properties
 
       if (error) {
         console.error("Error deleting property:", error);
@@ -152,7 +188,7 @@ export default function PropertiesPage() {
       }
 
       // Refresh the properties list
-      await fetchProperties();
+      await checkAuthenticationAndFetchProperties();
     } catch (error) {
       console.error("Error deleting property:", error);
       alert("Error deleting property: " + (error as Error).message);
@@ -160,6 +196,25 @@ export default function PropertiesPage() {
       setIsLoading(false);
     }
   };
+
+  // Show authentication error message if not authenticated
+  if (!isAuthenticated) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-6">
+        <Lock className="w-12 h-12 text-amber-500" />
+        <h2 className="text-2xl font-bold text-center">Access Denied</h2>
+        <p className="text-gray-600 text-center max-w-md">
+          You are not authenticated. Please log in to access your properties.
+        </p>
+        <Button
+          onClick={() => router.push("/auth/login")}
+          className="bg-amber-500 hover:bg-amber-600"
+        >
+          Go to Login
+        </Button>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -172,21 +227,21 @@ export default function PropertiesPage() {
       </div>
 
       {showForm && (
-        <Card className="bg-slate-50">
+        <Card>
           <CardContent className="pt-6">
             <form onSubmit={addProperty} className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium mb-1">Property Name</label>
-                  <input name="name" type="text" placeholder="Property Name" className="w-full px-3 py-2 border rounded-lg" required />
+                  <input name="name" type="text" placeholder="Property Name" className="w-full px-3 py-2 border rounded-lg bg-background text-foreground" required />
                 </div>
                 <div>
                   <label className="block text-sm font-medium mb-1">Address</label>
-                  <input name="address" type="text" placeholder="Address" className="w-full px-3 py-2 border rounded-lg" required />
+                  <input name="address" type="text" placeholder="Address" className="w-full px-3 py-2 border rounded-lg bg-background text-foreground" required />
                 </div>
                 <div>
                   <label className="block text-sm font-medium mb-1">{t('city')}</label>
-                  <select name="city" className="w-full px-3 py-2 border rounded-lg" required>
+                  <select name="city" className="w-full px-3 py-2 border rounded-lg bg-background text-foreground" required>
                     <option value="">{t('selectCityPlaceholder')}</option>
                     <option value="Riyadh">{t('riyadh')}</option>
                     <option value="Jeddah">{t('jeddah')}</option>
@@ -198,7 +253,15 @@ export default function PropertiesPage() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium mb-1">Country</label>
-                  <input name="country" type="text" placeholder="Country" className="w-full px-3 py-2 border rounded-lg" required />
+                  <input name="country" type="text" placeholder="Country" className="w-full px-3 py-2 border rounded-lg bg-background text-foreground" required />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Check-in Time</label>
+                  <input name="check_in_time" type="time" className="w-full px-3 py-2 border rounded-lg bg-background text-foreground" defaultValue="14:00" required />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Check-out Time</label>
+                  <input name="check_out_time" type="time" className="w-full px-3 py-2 border rounded-lg bg-background text-foreground" defaultValue="11:00" required />
                 </div>
               </div>
               <div className="flex gap-2">

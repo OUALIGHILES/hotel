@@ -252,6 +252,18 @@ const translations = {
     darkMode: 'الوضع المظلم',
     lightMode: 'الوضع الفاتح',
     systemMode: 'وضع النظام',
+    occupancy: 'الإشغال',
+    reservations: 'الحجوزات',
+    guests: 'الضيوف',
+    messages: 'الرسائل',
+    channels: 'القنوات',
+    smartLocks: 'الأقفال الذكية',
+    tasks: 'المهام',
+    invoices: 'الفواتير',
+    receipts: 'الإيصالات',
+    reports: 'التقارير',
+    paymentLinks: 'روابط الدفع',
+    settings: 'الإعدادات',
   }
 };
 

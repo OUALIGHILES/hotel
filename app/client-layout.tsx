@@ -6,7 +6,7 @@ import { ReactNode } from 'react';
 
 export default function ClientLayout({ children }: { children: ReactNode }) {
   return (
-    <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+    <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
       <LanguageProvider>
         {children}
       </LanguageProvider>
