@@ -57,7 +57,7 @@ export function PMSLayout({ children }: PMSLayoutProps) {
     { label: t('occupancy'), href: "/dashboard/occupancy", icon: Calendar },
     { label: t('reservations'), href: "/dashboard/reservations", icon: BookOpen },
     { label: t('guests'), href: "/dashboard/guests", icon: Users },
-    { label: t('messages'), href: "/dashboard/messages", icon: MessageSquare },
+    ...(user?.is_premium ? [{ label: t('messages'), href: "/dashboard/messages", icon: MessageSquare }] : []),
     { label: t('channels'), href: "/dashboard/channels", icon: Radio },
     { label: t('smartLocks'), href: "/dashboard/smart-locks", icon: Lock },
     { label: t('tasks'), href: "/dashboard/tasks", icon: CheckSquare2 },

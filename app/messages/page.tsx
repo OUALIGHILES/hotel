@@ -3,7 +3,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Send, Search, Loader2 } from "lucide-react"
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { createClient } from "@/lib/supabase/client"
 import { useRouter } from "next/navigation"
 
@@ -29,7 +29,6 @@ interface Thread {
   last_message_time: string
   unread_count: number
   sender_name: string
-  sender_email?: string
 }
 
 export default function MessagesPage() {
@@ -40,8 +39,7 @@ export default function MessagesPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [isLoadingMessages, setIsLoadingMessages] = useState(false)
   const [currentUserId, setCurrentUserId] = useState<string | null>(null)
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null) // Changed to null initially
-  const [userProfile, setUserProfile] = useState<any>(null)
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null)
   const supabase = createClient()
   const router = useRouter()
 
@@ -49,7 +47,7 @@ export default function MessagesPage() {
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        // Use the same auth check as other dashboard pages
+        // Use the same auth check as other pages
         const response = await fetch("/api/auth/check");
         if (!response.ok) {
           setIsAuthenticated(false);
@@ -67,7 +65,6 @@ export default function MessagesPage() {
         // User is authenticated
         setIsAuthenticated(true);
         setCurrentUserId(result.user.id);
-        setUserProfile(result.user);
       } catch (error) {
         console.error("Error checking auth:", error);
         setIsAuthenticated(false);
@@ -102,7 +99,6 @@ export default function MessagesPage() {
   return (
     <AuthenticatedMessagesPage
       currentUserId={currentUserId}
-      userProfile={userProfile}
       router={router}
       supabase={supabase}
       threads={threads}
@@ -118,13 +114,12 @@ export default function MessagesPage() {
       isLoadingMessages={isLoadingMessages}
       setIsLoadingMessages={setIsLoadingMessages}
     />
-  );
+  )
 }
 
 // Separate component for authenticated users
 function AuthenticatedMessagesPage({
   currentUserId,
-  userProfile,
   router,
   supabase,
   threads,
@@ -141,7 +136,6 @@ function AuthenticatedMessagesPage({
   setIsLoadingMessages
 }: {
   currentUserId: string | null,
-  userProfile: any,
   router: ReturnType<typeof useRouter>,
   supabase: ReturnType<typeof createClient>,
   threads: Thread[],
@@ -166,7 +160,7 @@ function AuthenticatedMessagesPage({
         setIsLoading(true)
 
         // First, get all messages where the user is either sender or recipient
-        const { data: messagesData, error: messagesError } = await supabase
+        const { data, error } = await supabase
           .from("messages")
           .select(`
             id,
@@ -180,113 +174,19 @@ function AuthenticatedMessagesPage({
           .or(`sender_id.eq.${currentUserId},recipient_id.eq.${currentUserId}`)
           .order("created_at", { ascending: false })
 
-        if (messagesError) {
-          console.error("Error fetching messages:", messagesError)
+        if (error) {
+          console.error("Error fetching messages:", error)
           setThreads([])
           return
-        }
-
-        // Get unique user IDs to fetch names
-        const userIds = new Set<string>();
-        messagesData.forEach(msg => {
-          userIds.add(msg.sender_id);
-          userIds.add(msg.recipient_id);
-        });
-
-        // Fetch user profiles to get names and emails
-        const { data: profilesData, error: profilesError } = await supabase
-          .from("profiles")
-          .select("id, full_name")
-          .in("id", Array.from(userIds));
-
-        if (profilesError) {
-          console.error("Error fetching profiles:", profilesError);
-          // Continue with messages but without names
-        }
-
-        let usersData = null;
-        let usersError = null;
-
-        // Since we're not sure if email field exists in the profiles table, we'll just continue without email lookups in this section
-        // The profiles table likely only has id and full_name based on the original query
-        // We'll initialize empty email mapping to continue functionality
-        usersData = null;
-        usersError = null;
-
-        // If you want to try to fetch emails and handle errors gracefully:
-        try {
-          // Attempt to check if email column exists by making a simple query
-          const checkResponse = await supabase.from("profiles").select("id, email").limit(1);
-          if (!checkResponse.error) {
-            // If no error, try to get all required data with email
-            const { data: profilesDataWithEmails, error: profilesEmailError } = await supabase
-              .from("profiles")
-              .select("id, full_name, email")
-              .in("id", Array.from(userIds));
-
-            if (profilesEmailError) {
-              usersError = profilesEmailError;
-              usersData = null;
-            } else {
-              usersData = profilesDataWithEmails;
-              usersError = null;
-            }
-          } else {
-            // If error occurs when requesting email, continue without email fetch
-            usersData = null;
-            usersError = null;
-          }
-        } catch (error) {
-          // If any exception occurs during email fetching, continue without it
-          usersData = null;
-          usersError = error;
-        }
-
-        if (usersError) {
-          console.error("Error fetching user emails:", usersError);
-          // Continue with just the names if emails fail - this is expected in many setups
-        }
-
-        // Create a lookup map for user names
-        const userNames: Record<string, string> = {};
-        if (profilesData) {
-          profilesData.forEach(profile => {
-            userNames[profile.id] = profile.full_name || profile.id.substring(0, 8);
-          });
-        }
-
-        // Create a lookup map for user emails
-        const userEmails: Record<string, string> = {};
-        if (usersData) {
-          usersData.forEach(user => {
-            // Use email from the data we retrieved, fallback to 'No Email'
-            userEmails[user.id] = user.email || 'No Email';
-          });
-        } else {
-          // If we couldn't fetch emails, initialize with empty values
-          userIds.forEach(id => {
-            userEmails[id] = 'No Email';
-          });
         }
 
         // Process messages to create threads
         const threadMap: Record<string, Thread> = {}
 
-        messagesData.forEach(msg => {
+        data.forEach(msg => {
           // Determine the other participant in the conversation
           const otherUserId = msg.sender_id === currentUserId ? msg.recipient_id : msg.sender_id;
           const threadId = otherUserId; // Use the other user's ID as thread identifier
-
-          // Get sender name: if current user is sender, show recipient's name, otherwise show sender's name
-          let senderName = 'Other Participant';
-          if (msg.sender_id === currentUserId && userNames[msg.recipient_id]) {
-            senderName = userNames[msg.recipient_id];
-          } else if (msg.recipient_id === currentUserId && userNames[msg.sender_id]) {
-            senderName = userNames[msg.sender_id];
-          }
-
-          // Determine email to use: if current user is sender, use recipient's email, else use sender's email
-          let senderEmail = userEmails[otherUserId] || 'No Email';
 
           // If this thread doesn't exist yet, create it
           if (!threadMap[threadId]) {
@@ -298,8 +198,7 @@ function AuthenticatedMessagesPage({
               last_message: msg.body,
               last_message_time: msg.created_at,
               unread_count: msg.is_read ? 0 : (msg.recipient_id === currentUserId ? 1 : 0),
-              sender_name: senderName,
-              sender_email: senderEmail,
+              sender_name: 'Other Participant', // We'll fetch names separately
             }
           } else {
             // Update if this is a more recent message
@@ -330,17 +229,16 @@ function AuthenticatedMessagesPage({
     }
 
     fetchThreads()
-  }, [currentUserId]) // Only depend on currentUserId to avoid infinite loop
+  }, [currentUserId, setIsLoading, setThreads, supabase])
 
-  // Fetch messages for a specific thread
-  const fetchThreadMessages = async (threadId: string) => {
+  const fetchThreadMessages = useCallback(async (threadId: string) => {
     if (!currentUserId) return;
 
     try {
       setIsLoadingMessages(true)
 
       // Get all messages between current user and the other participant
-      const { data: threadMessages, error: messagesError } = await supabase
+      const { data, error } = await supabase
         .from("messages")
         .select(`
           id,
@@ -354,49 +252,12 @@ function AuthenticatedMessagesPage({
         .or(`and(sender_id.eq.${currentUserId},recipient_id.eq.${threadId}),and(sender_id.eq.${threadId},recipient_id.eq.${currentUserId})`)
         .order("created_at", { ascending: true })
 
-      if (messagesError) {
-        console.error("Error fetching thread messages:", messagesError)
+      if (error) {
+        console.error("Error fetching thread messages:", error)
         return
       }
 
-      // Get unique user IDs to fetch names
-      const userIds = new Set<string>();
-      threadMessages.forEach(msg => {
-        userIds.add(msg.sender_id);
-        userIds.add(msg.recipient_id);
-      });
-
-      // Fetch user profiles to get names - first try basic fields without email
-      const { data: profilesData, error: profilesError } = await supabase
-        .from("profiles")
-        .select("id, full_name")  // Only select fields that definitely exist
-        .in("id", Array.from(userIds));
-
-      if (profilesError) {
-        console.error("Error fetching profiles:", profilesError);
-        // Continue with messages but without names
-      }
-
-      // Create a lookup map for user names
-      const userNames: Record<string, string> = {};
-      if (profilesData) {
-        profilesData.forEach(profile => {
-          userNames[profile.id] = profile.full_name || profile.id.substring(0, 8);
-        });
-      } else {
-        // If profile fetch failed, initialize with empty values
-        userIds.forEach(id => {
-          userNames[id] = id.substring(0, 8);
-        });
-      }
-
-      // Create a lookup map for user emails (initialize with default values)
-      const userEmails: Record<string, string> = {};
-      userIds.forEach(id => {
-        userEmails[id] = 'No Email';
-      });
-
-      const processedMessages: Message[] = threadMessages.map((msg: any) => ({
+      const processedMessages: Message[] = data.map((msg: any) => ({
         id: msg.id,
         sender_id: msg.sender_id,
         recipient_id: msg.recipient_id,
@@ -404,18 +265,13 @@ function AuthenticatedMessagesPage({
         body: msg.body,
         is_read: msg.is_read,
         created_at: msg.created_at,
-        sender_name: msg.sender_id === currentUserId
-          ? 'You'
-          : (userNames[msg.sender_id] || msg.sender_id.substring(0, 8) + '...'), // Show actual name or truncated ID
-        recipient_name: msg.sender_id === currentUserId
-          ? (userNames[msg.recipient_id] || msg.recipient_id.substring(0, 8) + '...') // Show recipient's name if current user is sender
-          : (userNames[msg.sender_id] || msg.sender_id.substring(0, 8) + '...') // Show sender's name if current user is recipient
+        sender_name: msg.sender_id === currentUserId ? 'You' : 'Other Participant'
       }))
 
       setMessages(processedMessages)
 
       // Mark messages as read
-      const unreadMessageIds = threadMessages
+      const unreadMessageIds = data
         .filter((msg: any) => !msg.is_read && msg.recipient_id === currentUserId)
         .map((msg: any) => msg.id)
 
@@ -431,17 +287,16 @@ function AuthenticatedMessagesPage({
     } finally {
       setIsLoadingMessages(false)
     }
-  }
+  }, [setIsLoadingMessages, setMessages, supabase, currentUserId])
 
   // Handle thread selection
   useEffect(() => {
     if (selectedThread && currentUserId) {
       fetchThreadMessages(selectedThread)
     }
-  }, [selectedThread, currentUserId]) // Removed fetchThreadMessages to avoid dependency issues
+  }, [selectedThread, currentUserId, fetchThreadMessages])
 
-  // Send a new message
-  const sendMessage = async () => {
+  const sendMessage = useCallback(async () => {
     if (!messageInput.trim() || !selectedThread || !currentUserId) return
 
     try {
@@ -465,153 +320,48 @@ function AuthenticatedMessagesPage({
       setMessageInput("")
 
       // Refetch the thread messages to include the new one
-      setTimeout(() => {
-        if (selectedThread) {
-          fetchThreadMessages(selectedThread);
-        }
-      }, 300); // Small delay to allow DB to update
+      fetchThreadMessages(selectedThread)
 
-      // Refetch threads to update the thread list after a short delay
-      setTimeout(() => {
-        const fetchUpdatedThreads = async () => {
-          if (!currentUserId) return;
+      // Update the threads list to reflect the new message
+      setThreads(prevThreads => {
+        const updatedThreads = [...prevThreads];
+        const threadIndex = updatedThreads.findIndex(t => t.id === selectedThread);
 
-          try {
-            // Only fetch updated threads if currently loading threads is not in progress
-            const { data: messagesData, error: messagesError } = await supabase
-              .from("messages")
-              .select(`
-                id,
-                sender_id,
-                recipient_id,
-                subject,
-                body,
-                is_read,
-                created_at
-              `)
-              .or(`sender_id.eq.${currentUserId},recipient_id.eq.${currentUserId}`)
-              .order("created_at", { ascending: false })
-
-            if (messagesError) {
-              console.error("Error fetching messages:", messagesError)
-              return
-            }
-
-            // Get unique user IDs to fetch names
-            const userIds = new Set<string>();
-            messagesData.forEach(msg => {
-              userIds.add(msg.sender_id);
-              userIds.add(msg.recipient_id);
-            });
-
-            // Fetch user profiles to get names - avoid email field to prevent errors
-            const { data: profilesData, error: profilesError } = await supabase
-              .from("profiles")
-              .select("id, full_name")
-              .in("id", Array.from(userIds));
-
-            if (profilesError) {
-              console.error("Error fetching profiles:", profilesError);
-              // Continue with messages but without names
-            }
-
-            let usersData = null;
-            let usersError = null;
-
-            // Initialize user emails to be empty since we're not fetching them to avoid errors
-            usersData = null;
-            usersError = null;
-
-            // Create a lookup map for user names
-            const userNames: Record<string, string> = {};
-            if (profilesData) {
-              profilesData.forEach(profile => {
-                userNames[profile.id] = profile.full_name || profile.id.substring(0, 8);
-              });
-            } else {
-              // If profile fetch failed, initialize with empty values
-              userIds.forEach(id => {
-                userNames[id] = id.substring(0, 8);
-              });
-            }
-
-            // Create a lookup map for user emails
-            const userEmails: Record<string, string> = {};
-            if (usersData) {
-              usersData.forEach(user => {
-                // Use email from the data we retrieved, fallback to 'No Email'
-                userEmails[user.id] = user.email || 'No Email';
-              });
-            } else {
-              // If we couldn't fetch emails, initialize with empty values
-              userIds.forEach(id => {
-                userEmails[id] = 'No Email';
-              });
-            }
-
-            // Process messages to create threads
-            const threadMap: Record<string, Thread> = {}
-
-            messagesData.forEach(msg => {
-              // Determine the other participant in the conversation
-              const otherUserId = msg.sender_id === currentUserId ? msg.recipient_id : msg.sender_id;
-              const threadId = otherUserId; // Use the other user's ID as thread identifier
-
-              // Get sender name: if current user is sender, show recipient's name, otherwise show sender's name
-              let senderName = 'Other Participant';
-              if (msg.sender_id === currentUserId && userNames[msg.recipient_id]) {
-                senderName = userNames[msg.recipient_id];
-              } else if (msg.recipient_id === currentUserId && userNames[msg.sender_id]) {
-                senderName = userNames[msg.sender_id];
-              }
-
-              // Determine email to use: if current user is sender, use recipient's email, else use sender's email
-              let senderEmail = userEmails[otherUserId] || 'No Email';
-
-              // If this thread doesn't exist yet, create it
-              if (!threadMap[threadId]) {
-                threadMap[threadId] = {
-                  id: threadId,
-                  sender_id: msg.sender_id,
-                  recipient_id: msg.recipient_id,
-                  subject: msg.subject || 'No Subject',
-                  last_message: msg.body,
-                  last_message_time: msg.created_at,
-                  unread_count: msg.is_read ? 0 : (msg.recipient_id === currentUserId ? 1 : 0),
-                  sender_name: senderName,
-                  sender_email: senderEmail,
-                }
-              } else {
-                // Update if this is a more recent message
-                if (new Date(msg.created_at) > new Date(threadMap[threadId].last_message_time)) {
-                  threadMap[threadId].last_message = msg.body;
-                  threadMap[threadId].last_message_time = msg.created_at;
-                }
-                // Update unread count
-                if (!msg.is_read && msg.recipient_id === currentUserId) {
-                  threadMap[threadId].unread_count += 1;
-                }
-              }
-            })
-
-            // Convert threadMap to array and sort by last message time
-            const userThreads = Object.values(threadMap);
-            userThreads.sort((a, b) =>
-              new Date(b.last_message_time).getTime() - new Date(a.last_message_time).getTime()
-            );
-
-            setThreads(userThreads);
-          } catch (error) {
-            console.error("Error in fetchUpdatedThreads:", error)
-          }
+        if (threadIndex !== -1) {
+          // Update the existing thread
+          updatedThreads[threadIndex] = {
+            ...updatedThreads[threadIndex],
+            last_message: messageInput,
+            last_message_time: new Date().toISOString(),
+            unread_count: updatedThreads[threadIndex].unread_count // Since user sent it, it's not unread
+          };
+        } else {
+          // If thread doesn't exist, add it
+          // The threadId is the other participant's ID, so we need to determine the correct direction
+          const newThread: Thread = {
+            id: selectedThread,
+            sender_id: currentUserId,
+            recipient_id: selectedThread, // The other user
+            subject: `Message to ${selectedThread}`,
+            last_message: messageInput,
+            last_message_time: new Date().toISOString(),
+            unread_count: 0,
+            sender_name: 'Other Participant'
+          };
+          updatedThreads.push(newThread);
         }
 
-        fetchUpdatedThreads();
-      }, 500);
+        // Sort by last message time
+        updatedThreads.sort((a, b) =>
+          new Date(b.last_message_time).getTime() - new Date(a.last_message_time).getTime()
+        );
+
+        return updatedThreads;
+      });
     } catch (error) {
       console.error("Error sending message:", error)
     }
-  }
+  }, [messageInput, selectedThread, currentUserId, supabase, fetchThreadMessages, setMessageInput, setThreads])
 
   return (
     <div className="space-y-6">
@@ -648,10 +398,7 @@ function AuthenticatedMessagesPage({
                   }`}
                 >
                   <div className="flex justify-between items-start">
-                    <div>
-                      <p className="font-semibold text-sm">{thread.sender_name}</p>
-                      <p className="text-xs text-muted-foreground">{thread.sender_email}</p>
-                    </div>
+                    <p className="font-semibold text-sm">{thread.sender_name}</p>
                     {thread.unread_count > 0 && (
                       <span className="text-xs bg-red-500 text-white px-2 py-1 rounded-full">
                         {thread.unread_count}
@@ -679,9 +426,6 @@ function AuthenticatedMessagesPage({
                   <CardTitle>
                     {threads.find(t => t.id === selectedThread)?.sender_name || 'Conversation'}
                   </CardTitle>
-                  <p className="text-sm text-muted-foreground">
-                    {threads.find(t => t.id === selectedThread)?.sender_email}
-                  </p>
                 </CardHeader>
                 <CardContent className="p-6 space-y-4 h-96 overflow-y-auto">
                   {isLoadingMessages ? (
@@ -707,10 +451,6 @@ function AuthenticatedMessagesPage({
                               >
                                 <p className="text-sm">{msg.body}</p>
                                 <p className="text-xs opacity-70 mt-1">
-                                  {!isCurrentUser && (msg.sender_name || msg.sender_id.substring(0, 8))}
-                                  {isCurrentUser && 'You'}
-                                </p>
-                                <p className="text-xs opacity-50">
                                   {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                 </p>
                               </div>

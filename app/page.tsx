@@ -114,8 +114,8 @@ export default function HomePage() {
             <button className="text-sm font-medium hover:text-gray-600">{t('experiences')}</button>
             <button className="text-sm font-medium hover:text-gray-600">{t('onlineExperiences')}</button>
             {user && (
-              <Link href="/packages" className="text-sm font-medium hover:text-gray-600">
-                {t('packagesOffers')}
+              <Link href="/messages" className="text-sm font-medium hover:text-gray-600">
+                {t('messages')}
               </Link>
             )}
           </div>
