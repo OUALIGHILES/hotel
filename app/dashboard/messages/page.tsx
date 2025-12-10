@@ -165,7 +165,7 @@ function AuthenticatedMessagesPage({
         setIsLoading(true)
 
         // First, get all messages where the user is either sender or recipient
-        const { data, error } = await supabase
+        const { data: messagesData, error: messagesError } = await supabase
           .from("messages")
           .select(`
             id,
@@ -179,19 +179,53 @@ function AuthenticatedMessagesPage({
           .or(`sender_id.eq.${currentUserId},recipient_id.eq.${currentUserId}`)
           .order("created_at", { ascending: false })
 
-        if (error) {
-          console.error("Error fetching messages:", error)
+        if (messagesError) {
+          console.error("Error fetching messages:", messagesError)
           setThreads([])
           return
+        }
+
+        // Get unique user IDs to fetch names
+        const userIds = new Set<string>();
+        messagesData.forEach(msg => {
+          userIds.add(msg.sender_id);
+          userIds.add(msg.recipient_id);
+        });
+
+        // Fetch user profiles to get names
+        const { data: profilesData, error: profilesError } = await supabase
+          .from("profiles")
+          .select("id, full_name")
+          .in("id", Array.from(userIds));
+
+        if (profilesError) {
+          console.error("Error fetching profiles:", profilesError);
+          // Continue with messages but without names
+        }
+
+        // Create a lookup map for user names
+        const userNames: Record<string, string> = {};
+        if (profilesData) {
+          profilesData.forEach(profile => {
+            userNames[profile.id] = profile.full_name || profile.id.substring(0, 8);
+          });
         }
 
         // Process messages to create threads
         const threadMap: Record<string, Thread> = {}
 
-        data.forEach(msg => {
+        messagesData.forEach(msg => {
           // Determine the other participant in the conversation
           const otherUserId = msg.sender_id === currentUserId ? msg.recipient_id : msg.sender_id;
           const threadId = otherUserId; // Use the other user's ID as thread identifier
+
+          // Get sender name: if current user is sender, show recipient's name, otherwise show sender's name
+          let senderName = 'Other Participant';
+          if (msg.sender_id === currentUserId && userNames[msg.recipient_id]) {
+            senderName = userNames[msg.recipient_id];
+          } else if (msg.recipient_id === currentUserId && userNames[msg.sender_id]) {
+            senderName = userNames[msg.sender_id];
+          }
 
           // If this thread doesn't exist yet, create it
           if (!threadMap[threadId]) {
@@ -203,7 +237,7 @@ function AuthenticatedMessagesPage({
               last_message: msg.body,
               last_message_time: msg.created_at,
               unread_count: msg.is_read ? 0 : (msg.recipient_id === currentUserId ? 1 : 0),
-              sender_name: 'Other Participant', // We'll fetch names separately
+              sender_name: senderName,
             }
           } else {
             // Update if this is a more recent message
@@ -244,7 +278,7 @@ function AuthenticatedMessagesPage({
       setIsLoadingMessages(true)
 
       // Get all messages between current user and the other participant
-      const { data, error } = await supabase
+      const { data: threadMessages, error: messagesError } = await supabase
         .from("messages")
         .select(`
           id,
@@ -258,12 +292,38 @@ function AuthenticatedMessagesPage({
         .or(`and(sender_id.eq.${currentUserId},recipient_id.eq.${threadId}),and(sender_id.eq.${threadId},recipient_id.eq.${currentUserId})`)
         .order("created_at", { ascending: true })
 
-      if (error) {
-        console.error("Error fetching thread messages:", error)
+      if (messagesError) {
+        console.error("Error fetching thread messages:", messagesError)
         return
       }
 
-      const processedMessages: Message[] = data.map((msg: any) => ({
+      // Get unique user IDs to fetch names
+      const userIds = new Set<string>();
+      threadMessages.forEach(msg => {
+        userIds.add(msg.sender_id);
+        userIds.add(msg.recipient_id);
+      });
+
+      // Fetch user profiles to get names
+      const { data: profilesData, error: profilesError } = await supabase
+        .from("profiles")
+        .select("id, full_name")
+        .in("id", Array.from(userIds));
+
+      if (profilesError) {
+        console.error("Error fetching profiles:", profilesError);
+        // Continue with messages but without names
+      }
+
+      // Create a lookup map for user names
+      const userNames: Record<string, string> = {};
+      if (profilesData) {
+        profilesData.forEach(profile => {
+          userNames[profile.id] = profile.full_name || profile.id.substring(0, 8);
+        });
+      }
+
+      const processedMessages: Message[] = threadMessages.map((msg: any) => ({
         id: msg.id,
         sender_id: msg.sender_id,
         recipient_id: msg.recipient_id,
@@ -271,13 +331,15 @@ function AuthenticatedMessagesPage({
         body: msg.body,
         is_read: msg.is_read,
         created_at: msg.created_at,
-        sender_name: msg.sender_id === currentUserId ? 'You' : 'Other Participant'
+        sender_name: msg.sender_id === currentUserId
+          ? 'You'
+          : (userNames[msg.sender_id] || msg.sender_id.substring(0, 8) + '...') // Show actual name or truncated ID
       }))
 
       setMessages(processedMessages)
 
       // Mark messages as read
-      const unreadMessageIds = data
+      const unreadMessageIds = threadMessages
         .filter((msg: any) => !msg.is_read && msg.recipient_id === currentUserId)
         .map((msg: any) => msg.id)
 
@@ -349,7 +411,9 @@ function AuthenticatedMessagesPage({
                 subject,
                 body,
                 is_read,
-                created_at
+                created_at,
+                sender:sender_id (full_name),
+                recipient:recipient_id (full_name)
               `)
               .or(`sender_id.eq.${currentUserId},recipient_id.eq.${currentUserId}`)
               .order("created_at", { ascending: false })
@@ -367,6 +431,14 @@ function AuthenticatedMessagesPage({
               const otherUserId = msg.sender_id === currentUserId ? msg.recipient_id : msg.sender_id;
               const threadId = otherUserId; // Use the other user's ID as thread identifier
 
+              // Get sender name: if current user is sender, show recipient's name, otherwise show sender's name
+              let senderName = 'Other Participant';
+              if (msg.sender_id === currentUserId && msg.recipient) {
+                senderName = msg.recipient.full_name || 'Unknown User';
+              } else if (msg.recipient_id === currentUserId && msg.sender) {
+                senderName = msg.sender.full_name || 'Unknown User';
+              }
+
               // If this thread doesn't exist yet, create it
               if (!threadMap[threadId]) {
                 threadMap[threadId] = {
@@ -377,7 +449,7 @@ function AuthenticatedMessagesPage({
                   last_message: msg.body,
                   last_message_time: msg.created_at,
                   unread_count: msg.is_read ? 0 : (msg.recipient_id === currentUserId ? 1 : 0),
-                  sender_name: 'Other Participant',
+                  sender_name: senderName,
                 }
               } else {
                 // Update if this is a more recent message
