@@ -210,27 +210,29 @@ export default function HomePage() {
       </header>
 
       {/* Hero Section */}
-      <section className="bg-gradient-to-r from-primary to-accent text-primary-foreground py-12 md:py-24 relative overflow-hidden">
+      <section className="bg-gradient-to-r from-primary to-accent text-primary-foreground py-12 md:py-24">
         <div className="container mx-auto px-4">
-          <div className="max-w-4xl mx-auto overflow-hidden">
-            <div className="relative h-20 flex items-center">
-              <div className="animate-marquee-horizontal whitespace-nowrap">
-                <h1 className="text-4xl md:text-5xl font-bold inline-block mr-4">{t('findYourNextStay')}</h1>
-                <span className="text-2xl mx-2 inline-block">•</span>
-                <p className="text-lg md:text-xl inline-block ml-4">{t('explorePropertiesWorld')}</p>
-              </div>
-            </div>
+          <div className="max-w-2xl mx-auto text-center">
+            <h1 className="text-4xl md:text-5xl font-bold mb-4 animate-reactive-move">{t('findYourNextStay')}</h1>
+            <p className="text-lg md:text-xl text-primary-foreground/90 animate-reactive-move-delayed">{t('explorePropertiesWorld')}</p>
           </div>
         </div>
 
         <style jsx global>{`
-          @keyframes marquee-horizontal {
-            0% { transform: translateX(-100%); }
-            100% { transform: translateX(100vw); }
+          @keyframes reactive-move {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-5px); }
           }
-          .animate-marquee-horizontal {
-            animation: marquee-horizontal 15s linear infinite;
-            display: inline-block;
+          @keyframes reactive-move-delayed {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-5px); }
+          }
+          .animate-reactive-move {
+            animation: reactive-move 3s ease-in-out infinite;
+          }
+          .animate-reactive-move-delayed {
+            animation: reactive-move-delayed 3s ease-in-out infinite;
+            animation-delay: 0.5s;
           }
         `}</style>
       </section>
