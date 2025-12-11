@@ -350,56 +350,70 @@ export default function ReservationsPage() {
           <p className="text-muted-foreground">No reservations yet</p>
         </Card>
       ) : (
-        <Card>
+        <Card className="border rounded-xl shadow-lg">
           <CardContent className="p-0">
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
-                <thead className="bg-slate-50 border-b">
+                <thead className="bg-muted border-b">
                   <tr>
-                    <th className="px-6 py-4 text-left font-medium">Guest Name</th>
-                    <th className="px-6 py-4 text-left font-medium">Email</th>
-                    <th className="px-6 py-4 text-left font-medium">Phone</th>
-                    <th className="px-6 py-4 text-left font-medium">Check In</th>
-                    <th className="px-6 py-4 text-left font-medium">Check Out</th>
-                    <th className="px-6 py-4 text-left font-medium">Price</th>
-                    <th className="px-6 py-4 text-left font-medium">Status</th>
-                    <th className="px-6 py-4 text-left font-medium">Payment</th>
-                    <th className="px-6 py-4 text-left font-medium">Actions</th>
+                    <th className="px-6 py-4 text-left font-semibold text-foreground">Guest Name</th>
+                    <th className="px-6 py-4 text-left font-semibold text-foreground">Email</th>
+                    <th className="px-6 py-4 text-left font-semibold text-foreground">Phone</th>
+                    <th className="px-6 py-4 text-left font-semibold text-foreground">Check In</th>
+                    <th className="px-6 py-4 text-left font-semibold text-foreground">Check Out</th>
+                    <th className="px-6 py-4 text-left font-semibold text-foreground">Price</th>
+                    <th className="px-6 py-4 text-left font-semibold text-foreground">Status</th>
+                    <th className="px-6 py-4 text-left font-semibold text-foreground">Payment</th>
+                    <th className="px-6 py-4 text-left font-semibold text-foreground">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {reservations.map((res) => (
-                    <tr key={res.id} className="border-b hover:bg-slate-50">
-                      <td className="px-6 py-4">{res.guest_name}</td>
-                      <td className="px-6 py-4">{res.guest_email}</td>
-                      <td className="px-6 py-4">{res.guest_phone}</td>
-                      <td className="px-6 py-4">{new Date(res.check_in_date).toLocaleDateString()}</td>
-                      <td className="px-6 py-4">{new Date(res.check_out_date).toLocaleDateString()}</td>
-                      <td className="px-6 py-4">${res.total_price?.toFixed(2)}</td>
+                    <tr key={res.id} className="border-b hover:bg-muted transition-colors">
+                      <td className="px-6 py-4 font-medium text-foreground">{res.guest_name}</td>
+                      <td className="px-6 py-4 text-foreground">{res.guest_email}</td>
+                      <td className="px-6 py-4 text-foreground">{res.guest_phone}</td>
+                      <td className="px-6 py-4 text-foreground">{new Date(res.check_in_date).toLocaleDateString()}</td>
+                      <td className="px-6 py-4 text-foreground">{new Date(res.check_out_date).toLocaleDateString()}</td>
+                      <td className="px-6 py-4 font-semibold text-foreground">${res.total_price?.toFixed(2)}</td>
                       <td className="px-6 py-4">
                         <span
-                          className={`px-3 py-1 rounded-full text-xs font-medium ${statusColors[res.status as keyof typeof statusColors]}`}
+                          className={`px-3 py-1 rounded-full text-xs font-medium ${
+                            res.status === "pending"
+                              ? "bg-yellow-500/20 text-yellow-600 dark:text-yellow-400 border border-yellow-500/30"
+                              : res.status === "confirmed"
+                                ? "bg-blue-500/20 text-blue-600 dark:text-blue-400 border border-blue-500/30"
+                                : res.status === "checked_in"
+                                  ? "bg-green-500/20 text-green-600 dark:text-green-400 border border-green-500/30"
+                                  : res.status === "checked_out"
+                                    ? "bg-gray-500/20 text-gray-600 dark:text-gray-400 border border-gray-500/30"
+                                    : "bg-red-500/20 text-red-600 dark:text-red-400 border border-red-500/30"
+                          }`}
                         >
                           {res.status}
                         </span>
                       </td>
                       <td className="px-6 py-4">
                         <span
-                          className={`px-3 py-1 rounded-full text-xs font-medium ${res.payment_status === "paid" ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"}`}
+                          className={`px-3 py-1 rounded-full text-xs font-medium ${
+                            res.payment_status === "paid"
+                              ? "bg-green-500/20 text-green-600 dark:text-green-400 border border-green-500/30"
+                              : "bg-red-500/20 text-red-600 dark:text-red-400 border border-red-500/30"
+                          }`}
                         >
                           {res.payment_status}
                         </span>
                       </td>
                       <td className="px-6 py-4 flex gap-2">
-                        <Button 
-                          variant="ghost" 
+                        <Button
+                          variant="outline"
                           size="sm"
                           onClick={() => setEditingReservation(res)}
                         >
                           <Edit className="w-4 h-4" />
                         </Button>
-                        <Button 
-                          variant="ghost" 
+                        <Button
+                          variant="outline"
                           size="sm"
                           onClick={() => handleDeleteReservation(res.id)}
                         >
