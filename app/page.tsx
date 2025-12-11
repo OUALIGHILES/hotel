@@ -130,11 +130,11 @@ export default function HomePage() {
           </Link>
 
           <div className="hidden md:flex items-center gap-8">
-            <button className="text-sm font-medium hover:text-gray-600">{t('stays')}</button>
-            <button className="text-sm font-medium hover:text-gray-600">{t('experiences')}</button>
-            <button className="text-sm font-medium hover:text-gray-600">{t('onlineExperiences')}</button>
+            <button className="text-sm font-medium text-foreground hover:text-muted-foreground">{t('stays')}</button>
+            <button className="text-sm font-medium text-foreground hover:text-muted-foreground">{t('experiences')}</button>
+            <button className="text-sm font-medium text-foreground hover:text-muted-foreground">{t('onlineExperiences')}</button>
             {user?.is_premium && (
-              <Link href="/messages" className="text-sm font-medium hover:text-gray-600">
+              <Link href="/messages" className="text-sm font-medium text-foreground hover:text-muted-foreground">
                 {t('messages')}
               </Link>
             )}
@@ -165,8 +165,8 @@ export default function HomePage() {
                       />
                     </div>
                   ) : (
-                    <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center">
-                      <User className="w-4 h-4 text-gray-600" />
+                    <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center">
+                      <User className="w-4 h-4 text-muted-foreground" />
                     </div>
                   )}
                   <span className="hidden md:inline">{user.full_name || user.email.split('@')[0]}</span>
@@ -218,20 +218,20 @@ export default function HomePage() {
         <div className="container mx-auto px-4">
           <div className="max-w-2xl">
             <h1 className="text-4xl md:text-5xl font-bold mb-4">{t('findYourNextStay')}</h1>
-            <p className="text-lg md:text-xl opacity-90">{t('explorePropertiesWorld')}</p>
+            <p className="text-lg md:text-xl text-primary-foreground/90">{t('explorePropertiesWorld')}</p>
           </div>
         </div>
       </section>
 
       <section className="container mx-auto px-4 py-16">
-        <h2 className="text-3xl font-bold mb-2">{t('exploreKSA')}</h2>
-        <p className="text-gray-600 mb-8">{t('discoverDestinations')}</p>
+        <h2 className="text-3xl font-bold mb-2 text-foreground">{t('exploreKSA')}</h2>
+        <p className="text-muted-foreground mb-8">{t('discoverDestinations')}</p>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {cities.map((city) => (
             <Link key={city.name} href={`/listings?city=${city.name.toLowerCase()}`}>
               <Card className="overflow-hidden hover:shadow-xl transition-shadow cursor-pointer h-full group">
-                <div className="relative w-full h-64 bg-gray-200 overflow-hidden">
+                <div className="relative w-full h-64 bg-muted overflow-hidden">
                   <Image
                     src={city.image || "/placeholder.svg"}
                     alt={city.name}
@@ -239,9 +239,9 @@ export default function HomePage() {
                     className="object-cover group-hover:scale-110 transition-transform duration-300"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex flex-col justify-end p-4">
-                    <h3 className="text-2xl font-bold text-white mb-1">{city.name}</h3>
-                    <p className="text-white/90 text-sm mb-2">{city.description}</p>
-                    <p className="text-white/70 text-xs">{city.propertiesCount} {t('properties')}</p>
+                    <h3 className="text-2xl font-bold text-primary-foreground mb-1">{city.name}</h3>
+                    <p className="text-primary-foreground/90 text-sm mb-2">{city.description}</p>
+                    <p className="text-primary-foreground/70 text-xs">{city.propertiesCount} {t('properties')}</p>
                   </div>
                 </div>
               </Card>
@@ -250,10 +250,10 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="container mx-auto px-4 py-16 bg-gray-50 -mx-4 px-4">
+      <section className="container mx-auto px-4 py-16 bg-muted">
         <div className="container mx-auto">
-          <h2 className="text-3xl font-bold mb-2">{t('popularStays')}</h2>
-          <p className="text-gray-600 mb-8">{t('highlyRatedProperties')}</p>
+          <h2 className="text-3xl font-bold mb-2 text-foreground">{t('popularStays')}</h2>
+          <p className="text-muted-foreground mb-8">{t('highlyRatedProperties')}</p>
 
           {isLoading ? (
             <div className="text-center py-12">
@@ -269,7 +269,7 @@ export default function HomePage() {
                 <Link key={listing.id} href={`/listings/${listing.id}`}>
                   <Card className="overflow-hidden hover:shadow-lg transition-shadow cursor-pointer h-full">
                     {/* Image */}
-                    <div className="relative w-full h-48 bg-gray-200">
+                    <div className="relative w-full h-48 bg-muted">
                       {listing.image_url ? (
                         <Image
                           src={listing.image_url || "/placeholder.svg"}
@@ -278,34 +278,34 @@ export default function HomePage() {
                           className="object-cover"
                         />
                       ) : (
-                        <div className="w-full h-full flex items-center justify-center text-gray-400">{t('noImage')}</div>
+                        <div className="w-full h-full flex items-center justify-center text-muted-foreground">{t('noImage')}</div>
                       )}
-                      <button className="absolute top-3 right-3 bg-white rounded-full p-2 hover:bg-gray-100">
-                        <Heart className="w-5 h-5 text-red-500" fill="currentColor" />
+                      <button className="absolute top-3 right-3 bg-background rounded-full p-2 hover:bg-muted">
+                        <Heart className="w-5 h-5 text-accent" fill="currentColor" />
                       </button>
                     </div>
 
                     {/* Content */}
                     <div className="p-4">
-                      <p className="text-xs text-gray-500 mb-1">{listing.property_type}</p>
-                      <h3 className="font-bold text-sm mb-2 line-clamp-2">{listing.title}</h3>
+                      <p className="text-xs text-muted-foreground mb-1">{listing.property_type}</p>
+                      <h3 className="font-bold text-sm mb-2 line-clamp-2 text-foreground">{listing.title}</h3>
 
                       <div className="flex items-center gap-1 mb-3">
-                        <Star className="w-4 h-4 fill-black" />
-                        <span className="text-sm font-medium">{listing.rating?.toFixed(2) || t('new')}</span>
+                        <Star className="w-4 h-4 fill-foreground" />
+                        <span className="text-sm font-medium text-foreground">{listing.rating?.toFixed(2) || t('new')}</span>
                         {listing.review_count > 0 && (
-                          <span className="text-xs text-gray-600">({listing.review_count})</span>
+                          <span className="text-xs text-muted-foreground">({listing.review_count})</span>
                         )}
                       </div>
 
-                      <div className="flex items-center gap-1 text-xs text-gray-600 mb-3">
+                      <div className="flex items-center gap-1 text-xs text-muted-foreground mb-3">
                         <MapPin className="w-3 h-3" />
                         {listing.city}
                       </div>
 
-                      <p className="font-bold">
+                      <p className="font-bold text-foreground">
                         ${listing.price_per_night}
-                        <span className="text-sm font-normal text-gray-600"> {t('perNight')}</span>
+                        <span className="text-sm font-normal text-muted-foreground"> {t('perNight')}</span>
                       </p>
                     </div>
                   </Card>
