@@ -126,7 +126,7 @@ export default function HomePage() {
       <header className="sticky top-0 z-50 bg-background border-b">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2">
-            <div className="text-2xl font-bold text-red-500">Wellhost</div>
+            <div className="text-2xl font-bold text-amber-500">Wellhost</div>
           </Link>
 
           <div className="hidden md:flex items-center gap-8">
@@ -214,7 +214,7 @@ export default function HomePage() {
       </header>
 
       {/* Hero Section */}
-      <section className="bg-gradient-to-r from-red-500 to-rose-500 text-white py-12 md:py-24">
+      <section className="bg-gradient-to-r from-primary to-accent text-primary-foreground py-12 md:py-24">
         <div className="container mx-auto px-4">
           <div className="max-w-2xl">
             <h1 className="text-4xl md:text-5xl font-bold mb-4">{t('findYourNextStay')}</h1>
