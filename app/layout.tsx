@@ -14,16 +14,16 @@ export const metadata: Metadata = {
   icons: {
     icon: [
       {
-        url: "/icon-light-32x32.png",
+        url: "/ChatGPT Image 11 déc. 2025, 18_33_45.png",
         media: "(prefers-color-scheme: light)",
       },
       {
-        url: "/icon-dark-32x32.png",
+        url: "/ChatGPT Image 11 déc. 2025, 18_33_45.png",
         media: "(prefers-color-scheme: dark)",
       },
       {
-        url: "/icon.svg",
-        type: "image/svg+xml",
+        url: "/ChatGPT Image 11 déc. 2025, 18_33_45.png",
+        type: "image/png",
       },
     ],
     apple: "/apple-icon.png",

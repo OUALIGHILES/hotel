@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import { createClient } from "@/lib/supabase/client"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Plus, Edit, Trash2, Filter, Lock } from "lucide-react"
+import { Plus, Edit, Trash2, Filter, Lock, Printer, Eye } from "lucide-react"
 import { useRouter } from "next/navigation"
 
 interface Reservation {
@@ -321,6 +321,55 @@ export default function ReservationsPage() {
     cancelled: "bg-red-100 text-red-800",
   }
 
+  const printReservation = (reservation: Reservation) => {
+    // Create a new window with printable reservation details
+    const printWindow = window.open('', '_blank');
+    if (printWindow && reservation) {
+      printWindow.document.write(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <title>Reservation Details - ${reservation.id.slice(0, 8)}</title>
+          <style>
+            body { font-family: Arial, sans-serif; margin: 20px; }
+            .header { text-align: center; border-bottom: 2px solid #000; padding-bottom: 10px; margin-bottom: 20px; }
+            .details { margin: 15px 0; }
+            .label { font-weight: bold; display: inline-block; width: 150px; }
+            .value { display: inline-block; }
+            .footer { margin-top: 30px; text-align: center; font-style: italic; }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <h1>Reservation Details</h1>
+          </div>
+
+          <div class="details">
+            <div><span class="label">Reservation ID:</span> <span class="value">${reservation.id}</span></div>
+            <div><span class="label">Guest Name:</span> <span class="value">${reservation.guest_name}</span></div>
+            <div><span class="label">Email:</span> <span class="value">${reservation.guest_email}</span></div>
+            <div><span class="label">Phone:</span> <span class="value">${reservation.guest_phone}</span></div>
+            <div><span class="label">Check-in Date:</span> <span class="value">${new Date(reservation.check_in_date).toLocaleDateString()}</span></div>
+            <div><span class="label">Check-out Date:</span> <span class="value">${new Date(reservation.check_out_date).toLocaleDateString()}</span></div>
+            <div><span class="label">Total Price:</span> <span class="value">$${reservation.total_price.toFixed(2)}</span></div>
+            <div><span class="label">Status:</span> <span class="value">${reservation.status}</span></div>
+            <div><span class="label">Payment Status:</span> <span class="value">${reservation.payment_status}</span></div>
+            <div><span class="label">Special Requests:</span> <span class="value">${reservation.special_requests || 'None'}</span></div>
+          </div>
+
+          <div class="footer">
+            <p>Generated on ${new Date().toLocaleString()}</p>
+          </div>
+        </body>
+        </html>
+      `);
+      printWindow.document.close();
+      printWindow.focus();
+      printWindow.print();
+      printWindow.close();
+    }
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -423,6 +472,20 @@ export default function ReservationsPage() {
                           onClick={() => handleDeleteReservation(res.id)}
                         >
                           <Trash2 className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => router.push(`/dashboard/reservations/${res.id}`)}
+                        >
+                          <Eye className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => printReservation(res)}
+                        >
+                          <Printer className="w-4 h-4" />
                         </Button>
                       </td>
                     </tr>

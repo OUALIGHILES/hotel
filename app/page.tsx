@@ -126,7 +126,13 @@ export default function HomePage() {
       <header className="sticky top-0 z-50 bg-background border-b">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2">
-            <div className="text-2xl font-bold text-amber-500">Wellhost</div>
+            <Image
+              src="/ChatGPT Image 11 déc. 2025, 18_33_45.png"
+              alt="Wellhost Logo"
+              width={40}
+              height={40}
+            />
+            <div className="text-2xl font-bold text-amber-500 hidden sm:block">Wellhost</div>
           </Link>
 
           <div className="hidden md:flex items-center gap-8">
