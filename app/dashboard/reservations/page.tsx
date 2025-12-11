@@ -417,52 +417,63 @@ export default function ReservationsPage() {
 
       {/* Create Reservation Form */}
       {showCreateForm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-black/20 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-background border rounded-xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
             <div className="p-6">
-              <h2 className="text-2xl font-bold mb-4">
-                {editingReservation ? "Edit Reservation" : "Create New Reservation"}
-              </h2>
-              
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-2xl font-bold text-foreground">
+                  {editingReservation ? "Edit Reservation" : "Create New Reservation"}
+                </h2>
+                <button
+                  onClick={() => {
+                    setShowCreateForm(false);
+                    setEditingReservation(null);
+                  }}
+                  className="text-muted-foreground hover:text-foreground"
+                >
+                  ✕
+                </button>
+              </div>
+
               <form onSubmit={handleSubmitReservation}>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium mb-1">Guest Name</label>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-foreground">Guest Name</label>
                     <input
                       name="guest_name"
                       type="text"
                       defaultValue={editingReservation?.guest_name || ''}
-                      className="w-full px-3 py-2 border rounded-lg bg-background text-foreground"
+                      className="w-full px-4 py-2.5 border rounded-lg bg-muted text-foreground focus:ring-2 focus:ring-primary focus:border-transparent transition-colors"
                       required
                     />
                   </div>
 
-                  <div>
-                    <label className="block text-sm font-medium mb-1">Guest Email</label>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-foreground">Guest Email</label>
                     <input
                       name="guest_email"
                       type="email"
                       defaultValue={editingReservation?.guest_email || ''}
-                      className="w-full px-3 py-2 border rounded-lg bg-background text-foreground"
+                      className="w-full px-4 py-2.5 border rounded-lg bg-muted text-foreground focus:ring-2 focus:ring-primary focus:border-transparent transition-colors"
                       required
                     />
                   </div>
 
-                  <div>
-                    <label className="block text-sm font-medium mb-1">Guest Phone</label>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-foreground">Guest Phone</label>
                     <input
                       name="guest_phone"
                       type="tel"
                       defaultValue={editingReservation?.guest_phone || ''}
-                      className="w-full px-3 py-2 border rounded-lg bg-background text-foreground"
+                      className="w-full px-4 py-2.5 border rounded-lg bg-muted text-foreground focus:ring-2 focus:ring-primary focus:border-transparent transition-colors"
                     />
                   </div>
 
-                  <div>
-                    <label className="block text-sm font-medium mb-1">Unit</label>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-foreground">Unit</label>
                     <select
                       name="unit_id"
-                      className="w-full px-3 py-2 border rounded-lg bg-background text-foreground"
+                      className="w-full px-4 py-2.5 border rounded-lg bg-muted text-foreground focus:ring-2 focus:ring-primary focus:border-transparent transition-colors"
                       defaultValue={editingReservation?.unit_id || ''}
                       required
                     >
@@ -475,45 +486,45 @@ export default function ReservationsPage() {
                     </select>
                   </div>
 
-                  <div>
-                    <label className="block text-sm font-medium mb-1">Check-in Date</label>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-foreground">Check-in Date</label>
                     <input
                       name="check_in_date"
                       type="date"
                       defaultValue={editingReservation?.check_in_date || ''}
-                      className="w-full px-3 py-2 border rounded-lg bg-background text-foreground"
+                      className="w-full px-4 py-2.5 border rounded-lg bg-muted text-foreground focus:ring-2 focus:ring-primary focus:border-transparent transition-colors"
                       required
                     />
                   </div>
 
-                  <div>
-                    <label className="block text-sm font-medium mb-1">Check-out Date</label>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-foreground">Check-out Date</label>
                     <input
                       name="check_out_date"
                       type="date"
                       defaultValue={editingReservation?.check_out_date || ''}
-                      className="w-full px-3 py-2 border rounded-lg bg-background text-foreground"
+                      className="w-full px-4 py-2.5 border rounded-lg bg-muted text-foreground focus:ring-2 focus:ring-primary focus:border-transparent transition-colors"
                       required
                     />
                   </div>
 
-                  <div>
-                    <label className="block text-sm font-medium mb-1">Total Price</label>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-foreground">Total Price</label>
                     <input
                       name="total_price"
                       type="number"
                       step="0.01"
                       defaultValue={editingReservation?.total_price || 0}
-                      className="w-full px-3 py-2 border rounded-lg bg-background text-foreground"
+                      className="w-full px-4 py-2.5 border rounded-lg bg-muted text-foreground focus:ring-2 focus:ring-primary focus:border-transparent transition-colors"
                       required
                     />
                   </div>
 
-                  <div>
-                    <label className="block text-sm font-medium mb-1">Status</label>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-foreground">Status</label>
                     <select
                       name="status"
-                      className="w-full px-3 py-2 border rounded-lg bg-background text-foreground"
+                      className="w-full px-4 py-2.5 border rounded-lg bg-muted text-foreground focus:ring-2 focus:ring-primary focus:border-transparent transition-colors"
                       defaultValue={editingReservation?.status || 'pending'}
                     >
                       <option value="pending">Pending</option>
@@ -524,21 +535,21 @@ export default function ReservationsPage() {
                     </select>
                   </div>
 
-                  <div className="md:col-span-2">
-                    <label className="block text-sm font-medium mb-1">Special Requests</label>
+                  <div className="md:col-span-2 space-y-2">
+                    <label className="text-sm font-medium text-foreground">Special Requests</label>
                     <textarea
                       name="special_requests"
                       defaultValue={editingReservation?.special_requests || ''}
-                      className="w-full px-3 py-2 border rounded-lg bg-background text-foreground"
+                      className="w-full px-4 py-2.5 border rounded-lg bg-muted text-foreground focus:ring-2 focus:ring-primary focus:border-transparent transition-colors min-h-[100px]"
                       rows={3}
                     />
                   </div>
 
-                  <div>
-                    <label className="block text-sm font-medium mb-1">Payment Status</label>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-foreground">Payment Status</label>
                     <select
                       name="payment_status"
-                      className="w-full px-3 py-2 border rounded-lg bg-background text-foreground"
+                      className="w-full px-4 py-2.5 border rounded-lg bg-muted text-foreground focus:ring-2 focus:ring-primary focus:border-transparent transition-colors"
                       defaultValue={editingReservation?.payment_status || 'unpaid'}
                     >
                       <option value="unpaid">Unpaid</option>
@@ -547,7 +558,7 @@ export default function ReservationsPage() {
                   </div>
                 </div>
 
-                <div className="flex justify-end gap-2 mt-6">
+                <div className="flex justify-end gap-3 mt-8 pt-6 border-t border-border">
                   <Button
                     type="button"
                     variant="outline"
@@ -558,7 +569,7 @@ export default function ReservationsPage() {
                   >
                     Cancel
                   </Button>
-                  <Button type="submit">
+                  <Button type="submit" className="px-6">
                     {editingReservation ? "Update Reservation" : "Create Reservation"}
                   </Button>
                 </div>

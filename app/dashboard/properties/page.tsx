@@ -227,21 +227,24 @@ export default function PropertiesPage() {
       </div>
 
       {showForm && (
-        <Card>
-          <CardContent className="pt-6">
-            <form onSubmit={addProperty} className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium mb-1">Property Name</label>
-                  <input name="name" type="text" placeholder="Property Name" className="w-full px-3 py-2 border rounded-lg bg-background text-foreground" required />
+        <Card className="border rounded-xl shadow-lg">
+          <CardHeader>
+            <CardTitle className="text-xl font-semibold">Add New Property</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={addProperty} className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-foreground">Property Name</label>
+                  <input name="name" type="text" placeholder="Property Name" className="w-full px-4 py-2.5 border rounded-lg bg-muted text-foreground focus:ring-2 focus:ring-primary focus:border-transparent transition-colors" required />
                 </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1">Address</label>
-                  <input name="address" type="text" placeholder="Address" className="w-full px-3 py-2 border rounded-lg bg-background text-foreground" required />
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-foreground">Address</label>
+                  <input name="address" type="text" placeholder="Address" className="w-full px-4 py-2.5 border rounded-lg bg-muted text-foreground focus:ring-2 focus:ring-primary focus:border-transparent transition-colors" required />
                 </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1">{t('city')}</label>
-                  <select name="city" className="w-full px-3 py-2 border rounded-lg bg-background text-foreground" required>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-foreground">{t('city')}</label>
+                  <select name="city" className="w-full px-4 py-2.5 border rounded-lg bg-muted text-foreground focus:ring-2 focus:ring-primary focus:border-transparent transition-colors" required>
                     <option value="">{t('selectCityPlaceholder')}</option>
                     <option value="Riyadh">{t('riyadh')}</option>
                     <option value="Jeddah">{t('jeddah')}</option>
@@ -251,24 +254,24 @@ export default function PropertiesPage() {
                     <option value="Madinah">{t('madinah')}</option>
                   </select>
                 </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1">Country</label>
-                  <input name="country" type="text" placeholder="Country" className="w-full px-3 py-2 border rounded-lg bg-background text-foreground" required />
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-foreground">Country</label>
+                  <input name="country" type="text" placeholder="Country" className="w-full px-4 py-2.5 border rounded-lg bg-muted text-foreground focus:ring-2 focus:ring-primary focus:border-transparent transition-colors" required />
                 </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1">Check-in Time</label>
-                  <input name="check_in_time" type="time" className="w-full px-3 py-2 border rounded-lg bg-background text-foreground" defaultValue="14:00" required />
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-foreground">Check-in Time</label>
+                  <input name="check_in_time" type="time" className="w-full px-4 py-2.5 border rounded-lg bg-muted text-foreground focus:ring-2 focus:ring-primary focus:border-transparent transition-colors" defaultValue="14:00" required />
                 </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1">Check-out Time</label>
-                  <input name="check_out_time" type="time" className="w-full px-3 py-2 border rounded-lg bg-background text-foreground" defaultValue="11:00" required />
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-foreground">Check-out Time</label>
+                  <input name="check_out_time" type="time" className="w-full px-4 py-2.5 border rounded-lg bg-muted text-foreground focus:ring-2 focus:ring-primary focus:border-transparent transition-colors" defaultValue="11:00" required />
                 </div>
               </div>
-              <div className="flex gap-2">
-                <Button type="submit">Save Property</Button>
+              <div className="flex justify-end gap-3 pt-4 border-t border-border">
                 <Button type="button" variant="outline" onClick={() => setShowForm(false)}>
                   Cancel
                 </Button>
+                <Button type="submit">Save Property</Button>
               </div>
             </form>
           </CardContent>

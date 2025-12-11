@@ -148,7 +148,7 @@ export function PMSLayout({ children }: PMSLayoutProps) {
       {/* Sidebar */}
       <aside
         className={cn(
-          "fixed left-0 top-0 z-40 h-full w-64 bg-slate-900 text-white transition-transform duration-300 lg:static lg:translate-x-0",
+          "fixed left-0 top-0 z-40 h-full w-64 bg-sidebar text-sidebar-foreground transition-transform duration-300 lg:static lg:translate-x-0",
           isOpen ? "translate-x-0" : "-translate-x-full",
         )}
       >
@@ -179,7 +179,7 @@ export function PMSLayout({ children }: PMSLayoutProps) {
                   href={item.href}
                   className={cn(
                     "flex items-center gap-3 px-4 py-2 rounded-lg transition-colors",
-                    isActive ? "bg-blue-600 text-white" : "text-slate-300 hover:bg-slate-800",
+                    isActive ? "bg-sidebar-accent text-sidebar-accent-foreground" : "text-sidebar-foreground hover:bg-sidebar-accent/50",
                   )}
                   onClick={() => setIsOpen(false)}
                 >
@@ -196,14 +196,14 @@ export function PMSLayout({ children }: PMSLayoutProps) {
                 href={messagesNavItem.href}
                 className={cn(
                   "flex items-center gap-3 px-4 py-2 rounded-lg transition-colors",
-                  pathname === messagesNavItem.href ? "bg-blue-600 text-white" : "text-slate-300 hover:bg-slate-800",
+                  pathname === messagesNavItem.href ? "bg-sidebar-accent text-sidebar-accent-foreground" : "text-sidebar-foreground hover:bg-sidebar-accent/50",
                 )}
                 onClick={() => setIsOpen(false)}
               >
                 <div className="relative">
                   <MessageSquare className="w-5 h-5" />
                   {messagesNavItem.badge && (
-                    <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                    <span className="absolute -top-2 -right-2 bg-destructive text-destructive-foreground text-xs rounded-full h-5 w-5 flex items-center justify-center">
                       {messagesNavItem.badge}
                     </span>
                   )}
@@ -214,7 +214,7 @@ export function PMSLayout({ children }: PMSLayoutProps) {
           </nav>
 
           {/* Logout */}
-          <div className="p-4 border-t border-slate-700">
+          <div className="p-4 border-t border-border">
             <Button variant="destructive" className="w-full" onClick={handleLogout}>
               <LogOut className="w-4 h-4 mr-2" />
               Logout
@@ -224,7 +224,7 @@ export function PMSLayout({ children }: PMSLayoutProps) {
       </aside>
 
       {/* Overlay */}
-      {isOpen && <div className="fixed inset-0 z-30 bg-black/50 lg:hidden" onClick={() => setIsOpen(false)} />}
+      {isOpen && <div className="fixed inset-0 z-30 bg-black/30 lg:hidden" onClick={() => setIsOpen(false)} />}
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col overflow-hidden">
@@ -241,8 +241,8 @@ export function PMSLayout({ children }: PMSLayoutProps) {
             <NotificationDropdown />
             {user && (
               <div className="flex items-center space-x-2">
-                <div className="w-8 h-8 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
-                  <User className="w-4 h-4 text-gray-600 dark:text-gray-300" />
+                <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center">
+                  <User className="w-4 h-4 text-muted-foreground" />
                 </div>
                 <div className="hidden md:block">
                   <div className="text-sm font-medium text-foreground">{user.full_name || user.email?.split('@')[0]}</div>

@@ -490,14 +490,14 @@ export default function UnitsPage() {
       </div>
 
       {/* City Filter */}
-      <div className="bg-slate-50 p-4 rounded-lg border">
+      <div className="bg-card p-4 rounded-lg border">
         <div className="flex flex-col md:flex-row items-start md:items-center gap-4">
           <div className="w-full md:w-auto">
-            <label className="block text-sm font-medium mb-1">Filter by City</label>
+            <label className="block text-sm font-medium text-foreground mb-1">Filter by City</label>
             <select
               value={selectedCity || ""}
               onChange={(e) => setSelectedCity(e.target.value || null)}
-              className="w-full px-3 py-2 border rounded-lg bg-background text-foreground"
+              className="w-full px-4 py-2.5 border rounded-lg bg-muted text-foreground focus:ring-2 focus:ring-primary focus:border-transparent transition-colors"
             >
               <option value="">All Cities</option>
               {cities.map(city => (
@@ -518,27 +518,30 @@ export default function UnitsPage() {
       </div>
 
       {showForm && (
-        <Card>
-          <CardContent className="pt-6">
-            <form onSubmit={addUnit} className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium mb-1">Unit Name</label>
+        <Card className="border rounded-xl shadow-lg">
+          <CardHeader>
+            <CardTitle className="text-xl font-semibold">Add New Unit</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={addUnit} className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-foreground">Unit Name</label>
                   <input
                     name="name"
                     type="text"
                     placeholder="e.g. Room 101"
-                    className="w-full px-3 py-2 border rounded-lg bg-background text-foreground"
+                    className="w-full px-4 py-2.5 border rounded-lg bg-muted text-foreground focus:ring-2 focus:ring-primary focus:border-transparent transition-colors"
                     required
                   />
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium mb-1">City</label>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-foreground">City</label>
                   <select
                     value={selectedCity || ""}
                     onChange={(e) => setSelectedCity(e.target.value || null)}
-                    className="w-full px-3 py-2 border rounded-lg bg-background text-foreground"
+                    className="w-full px-4 py-2.5 border rounded-lg bg-muted text-foreground focus:ring-2 focus:ring-primary focus:border-transparent transition-colors"
                   >
                     <option value="">Select a city</option>
                     {cities.map(city => (
@@ -549,11 +552,11 @@ export default function UnitsPage() {
                   </select>
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium mb-1">Property</label>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-foreground">Property</label>
                   <select
                     name="propertyId"
-                    className="w-full px-3 py-2 border rounded-lg bg-background text-foreground"
+                    className="w-full px-4 py-2.5 border rounded-lg bg-muted text-foreground focus:ring-2 focus:ring-primary focus:border-transparent transition-colors"
                     required
                   >
                     <option value="">Select a property</option>
@@ -565,47 +568,47 @@ export default function UnitsPage() {
                   </select>
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium mb-1">Floor</label>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-foreground">Floor</label>
                   <input
                     name="floor"
                     type="number"
                     min="0"
                     placeholder="Floor number"
-                    className="w-full px-3 py-2 border rounded-lg bg-background text-foreground"
+                    className="w-full px-4 py-2.5 border rounded-lg bg-muted text-foreground focus:ring-2 focus:ring-primary focus:border-transparent transition-colors"
                   />
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium mb-1">Price per Night ($)</label>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-foreground">Price per Night ($)</label>
                   <input
                     name="price"
                     type="number"
                     min="0"
                     step="0.01"
                     placeholder="0.00"
-                    className="w-full px-3 py-2 border rounded-lg bg-background text-foreground"
+                    className="w-full px-4 py-2.5 border rounded-lg bg-muted text-foreground focus:ring-2 focus:ring-primary focus:border-transparent transition-colors"
                   />
                 </div>
 
-                <div className="md:col-span-2">
-                  <label className="block text-sm font-medium mb-1">Main Unit Picture</label>
+                <div className="md:col-span-2 space-y-2">
+                  <label className="text-sm font-medium text-foreground">Main Unit Picture</label>
                   <input
                     name="mainPicture"
                     type="file"
                     accept="image/*"
-                    className="w-full px-3 py-2 border rounded-lg bg-background text-foreground"
+                    className="w-full px-4 py-2.5 border rounded-lg bg-muted text-foreground focus:ring-2 focus:ring-primary focus:border-transparent transition-colors"
                   />
                 </div>
 
-                <div className="md:col-span-2">
-                  <label className="block text-sm font-medium mb-1">Additional Pictures</label>
+                <div className="md:col-span-2 space-y-2">
+                  <label className="text-sm font-medium text-foreground">Additional Pictures</label>
                   <input
                     name="additionalPictures"
                     type="file"
                     accept="image/*"
                     multiple
-                    className="w-full px-3 py-2 border rounded-lg bg-background text-foreground"
+                    className="w-full px-4 py-2.5 border rounded-lg bg-muted text-foreground focus:ring-2 focus:ring-primary focus:border-transparent transition-colors"
                   />
                 </div>
 
@@ -618,8 +621,7 @@ export default function UnitsPage() {
                 </div>
               </div>
 
-              <div className="flex gap-2">
-                <Button type="submit">Add Unit</Button>
+              <div className="flex justify-end gap-3 pt-4 border-t border-border">
                 <Button
                   type="button"
                   variant="outline"
@@ -627,6 +629,7 @@ export default function UnitsPage() {
                 >
                   Cancel
                 </Button>
+                <Button type="submit">Add Unit</Button>
               </div>
             </form>
           </CardContent>

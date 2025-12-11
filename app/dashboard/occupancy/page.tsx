@@ -51,17 +51,17 @@ export default function OccupancyPage() {
 
     switch (status) {
       case 'available':
-        return `${baseClass} bg-green-50 border-green-200 hover:bg-green-100 cursor-pointer`
+        return `${baseClass} bg-green-500/20 border-border hover:bg-green-500/30 cursor-pointer`
       case 'booked':
-        return `${baseClass} bg-blue-100 border-blue-300 hover:bg-blue-200 cursor-pointer`
+        return `${baseClass} bg-blue-500/20 border-border hover:bg-blue-500/30 cursor-pointer`
       case 'reserved':
-        return `${baseClass} bg-yellow-100 border-yellow-300 hover:bg-yellow-200 cursor-pointer`
+        return `${baseClass} bg-yellow-500/20 border-border hover:bg-yellow-500/30 cursor-pointer`
       case 'occupied':
-        return `${baseClass} bg-purple-100 border-purple-300 hover:bg-purple-200 cursor-pointer`
+        return `${baseClass} bg-purple-500/20 border-border hover:bg-purple-500/30 cursor-pointer`
       case 'maintenance':
-        return `${baseClass} bg-red-100 border-red-300 hover:bg-red-200 cursor-pointer`
+        return `${baseClass} bg-red-500/20 border-border hover:bg-red-500/30 cursor-pointer`
       default:
-        return `${baseClass} bg-slate-50 hover:bg-slate-100 cursor-pointer`
+        return `${baseClass} bg-muted border-border hover:bg-muted/70 cursor-pointer`
     }
   }
 
@@ -164,13 +164,13 @@ export default function OccupancyPage() {
   if (!isAuthenticated) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-6">
-        <h2 className="text-2xl font-bold text-center">Access Denied</h2>
-        <p className="text-gray-600 text-center max-w-md">
+        <h2 className="text-2xl font-bold text-center text-foreground">Access Denied</h2>
+        <p className="text-muted-foreground text-center max-w-md">
           You are not authenticated. Please log in to access the occupancy calendar.
         </p>
         <Button
           onClick={() => router.push("/auth/login")}
-          className="bg-amber-500 hover:bg-amber-600"
+          variant="default"
         >
           Go to Login
         </Button>
@@ -181,11 +181,13 @@ export default function OccupancyPage() {
   if (isLoading) {
     return (
       <div className="space-y-6">
-        <h1 className="text-3xl font-bold">Occupancy Calendar</h1>
-        <div className="flex justify-center items-center h-64">
-          <Loader2 className="w-8 h-8 animate-spin" />
-          <span className="ml-2">Loading occupancy data...</span>
-        </div>
+        <h1 className="text-3xl font-bold text-foreground">Occupancy Calendar</h1>
+        <Card className="flex justify-center items-center h-64 border rounded-xl shadow-lg">
+          <div className="flex flex-col items-center gap-2">
+            <Loader2 className="w-8 h-8 animate-spin text-foreground" />
+            <span className="text-foreground">Loading occupancy data...</span>
+          </div>
+        </Card>
       </div>
     )
   }
@@ -194,9 +196,9 @@ export default function OccupancyPage() {
     <div className="space-y-6">
       <h1 className="text-3xl font-bold">Occupancy Calendar</h1>
 
-      <Card>
+      <Card className="border rounded-xl shadow-lg">
         <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle>{currentMonth.toLocaleDateString("en-US", { month: "long", year: "numeric" })}</CardTitle>
+          <CardTitle className="text-xl font-semibold">{currentMonth.toLocaleDateString("en-US", { month: "long", year: "numeric" })}</CardTitle>
           <div className="flex gap-2">
             <Button
               variant="outline"
@@ -217,14 +219,14 @@ export default function OccupancyPage() {
         <CardContent>
           <div className="grid grid-cols-7 gap-2">
             {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => (
-              <div key={day} className="text-center font-semibold p-2">
+              <div key={day} className="text-center font-semibold p-2 text-foreground">
                 {day}
               </div>
             ))}
             {days.map((day, idx) => {
               if (!day) {
                 return (
-                  <div key={idx} className="p-4 rounded-lg border text-center bg-white" />
+                  <div key={idx} className="p-4 rounded-lg border text-center bg-muted" />
                 )
               }
 
@@ -242,30 +244,30 @@ export default function OccupancyPage() {
         </CardContent>
       </Card>
 
-      <Card>
+      <Card className="border rounded-xl shadow-lg">
         <CardHeader>
-          <CardTitle>Legend</CardTitle>
+          <CardTitle className="text-xl font-semibold">Legend</CardTitle>
         </CardHeader>
         <CardContent className="flex flex-wrap gap-4">
           <div className="flex items-center gap-2">
-            <div className="w-4 h-4 bg-green-50 border border-green-200 rounded" />
-            <span className="text-sm">Available</span>
+            <div className="w-4 h-4 bg-green-500/20 border border-border rounded" />
+            <span className="text-sm text-foreground">Available</span>
           </div>
           <div className="flex items-center gap-2">
-            <div className="w-4 h-4 bg-blue-100 border border-blue-300 rounded" />
-            <span className="text-sm">Booked</span>
+            <div className="w-4 h-4 bg-blue-500/20 border border-border rounded" />
+            <span className="text-sm text-foreground">Booked</span>
           </div>
           <div className="flex items-center gap-2">
-            <div className="w-4 h-4 bg-yellow-100 border border-yellow-300 rounded" />
-            <span className="text-sm">Reserved</span>
+            <div className="w-4 h-4 bg-yellow-500/20 border border-border rounded" />
+            <span className="text-sm text-foreground">Reserved</span>
           </div>
           <div className="flex items-center gap-2">
-            <div className="w-4 h-4 bg-purple-100 border border-purple-300 rounded" />
-            <span className="text-sm">Occupied</span>
+            <div className="w-4 h-4 bg-purple-500/20 border border-border rounded" />
+            <span className="text-sm text-foreground">Occupied</span>
           </div>
           <div className="flex items-center gap-2">
-            <div className="w-4 h-4 bg-red-100 border border-red-300 rounded" />
-            <span className="text-sm">Maintenance</span>
+            <div className="w-4 h-4 bg-red-500/20 border border-border rounded" />
+            <span className="text-sm text-foreground">Maintenance</span>
           </div>
         </CardContent>
       </Card>

@@ -358,14 +358,14 @@ export default function InvoicesPage() {
   if (!isAuthenticated) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-6">
-        <Lock className="w-12 h-12 text-amber-500" />
-        <h2 className="text-2xl font-bold text-center">Access Denied</h2>
-        <p className="text-gray-600 text-center max-w-md">
+        <Lock className="w-12 h-12 text-foreground" />
+        <h2 className="text-2xl font-bold text-center text-foreground">Access Denied</h2>
+        <p className="text-muted-foreground text-center max-w-md">
           You are not authenticated. Please log in to access your invoices.
         </p>
         <Button
           onClick={() => router.push("/auth/login")}
-          className="bg-amber-500 hover:bg-amber-600"
+          variant="default"
         >
           Go to Login
         </Button>
@@ -384,18 +384,18 @@ export default function InvoicesPage() {
               Create Invoice
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-md">
+          <DialogContent className="max-w-md border rounded-xl shadow-xl bg-background">
             <DialogHeader>
-              <DialogTitle>Create New Invoice</DialogTitle>
+              <DialogTitle className="text-xl font-semibold">Create New Invoice</DialogTitle>
             </DialogHeader>
             <div className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="reservation">Reservation *</Label>
+                <Label htmlFor="reservation" className="text-foreground">Reservation *</Label>
                 <Select value={newInvoice.reservation_id} onValueChange={(value) => setNewInvoice({...newInvoice, reservation_id: value})}>
-                  <SelectTrigger className="w-full">
+                  <SelectTrigger className="w-full bg-muted focus:ring-2 focus:ring-primary focus:border-transparent">
                     <SelectValue placeholder="Select reservation" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="bg-background border border-border">
                     {reservations.map(reservation => (
                       <SelectItem key={reservation.id} value={reservation.id}>
                         {reservation.guest_name} - {reservation.check_in_date} to {reservation.check_out_date}
@@ -406,21 +406,22 @@ export default function InvoicesPage() {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="invoice_number">Invoice Number *</Label>
+                  <Label htmlFor="invoice_number" className="text-foreground">Invoice Number *</Label>
                   <Input
                     id="invoice_number"
                     value={newInvoice.invoice_number}
                     onChange={(e) => setNewInvoice({...newInvoice, invoice_number: e.target.value})}
                     placeholder="INV-001"
+                    className="bg-muted focus:ring-2 focus:ring-primary focus:border-transparent"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="status">Status</Label>
+                  <Label htmlFor="status" className="text-foreground">Status</Label>
                   <Select value={newInvoice.status} onValueChange={(value) => setNewInvoice({...newInvoice, status: value})}>
-                    <SelectTrigger>
+                    <SelectTrigger className="bg-muted focus:ring-2 focus:ring-primary focus:border-transparent">
                       <SelectValue placeholder="Select status" />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="bg-background border border-border">
                       <SelectItem value="draft">Draft</SelectItem>
                       <SelectItem value="sent">Sent</SelectItem>
                       <SelectItem value="paid">Paid</SelectItem>
@@ -431,7 +432,7 @@ export default function InvoicesPage() {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="amount">Amount *</Label>
+                  <Label htmlFor="amount" className="text-foreground">Amount *</Label>
                   <Input
                     id="amount"
                     type="number"
@@ -439,10 +440,11 @@ export default function InvoicesPage() {
                     value={newInvoice.amount}
                     onChange={(e) => setNewInvoice({...newInvoice, amount: e.target.value})}
                     placeholder="0.00"
+                    className="bg-muted focus:ring-2 focus:ring-primary focus:border-transparent"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="tax_amount">Tax Amount</Label>
+                  <Label htmlFor="tax_amount" className="text-foreground">Tax Amount</Label>
                   <Input
                     id="tax_amount"
                     type="number"
@@ -450,31 +452,34 @@ export default function InvoicesPage() {
                     value={newInvoice.tax_amount}
                     onChange={(e) => setNewInvoice({...newInvoice, tax_amount: e.target.value})}
                     placeholder="0.00"
+                    className="bg-muted focus:ring-2 focus:ring-primary focus:border-transparent"
                   />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="issued_date">Issued Date</Label>
+                  <Label htmlFor="issued_date" className="text-foreground">Issued Date</Label>
                   <Input
                     id="issued_date"
                     type="date"
                     value={newInvoice.issued_date}
                     onChange={(e) => setNewInvoice({...newInvoice, issued_date: e.target.value})}
+                    className="bg-muted focus:ring-2 focus:ring-primary focus:border-transparent"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="due_date">Due Date</Label>
+                  <Label htmlFor="due_date" className="text-foreground">Due Date</Label>
                   <Input
                     id="due_date"
                     type="date"
                     value={newInvoice.due_date}
                     onChange={(e) => setNewInvoice({...newInvoice, due_date: e.target.value})}
+                    className="bg-muted focus:ring-2 focus:ring-primary focus:border-transparent"
                   />
                 </div>
               </div>
             </div>
-            <DialogFooter>
+            <DialogFooter className="pt-4 border-t border-border">
               <Button type="button" variant="outline" onClick={() => setIsModalOpen(false)}>
                 Cancel
               </Button>
@@ -487,54 +492,59 @@ export default function InvoicesPage() {
       </div>
 
       {isLoading ? (
-        <p>Loading invoices...</p>
+        <Card className="flex justify-center items-center h-64 border rounded-xl shadow-lg">
+          <div className="flex flex-col items-center gap-2">
+            <Loader2 className="w-8 h-8 animate-spin text-foreground" />
+            <span className="text-foreground">Loading invoices...</span>
+          </div>
+        </Card>
       ) : invoices.length === 0 ? (
-        <Card className="text-center py-12">
+        <Card className="text-center py-12 border rounded-xl shadow-lg">
           <p className="text-muted-foreground">No invoices yet</p>
         </Card>
       ) : (
-        <Card>
+        <Card className="border rounded-xl shadow-lg">
           <CardContent className="p-0">
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
-                <thead className="bg-slate-100 border-b">
+                <thead className="bg-muted border-b">
                   <tr>
-                    <th className="px-6 py-4 text-left font-semibold text-gray-700">Invoice #</th>
-                    <th className="px-6 py-4 text-left font-semibold text-gray-700">Guest</th>
-                    <th className="px-6 py-4 text-left font-semibold text-gray-700">Property</th>
-                    <th className="px-6 py-4 text-left font-semibold text-gray-700">Amount</th>
-                    <th className="px-6 py-4 text-left font-semibold text-gray-700">Status</th>
-                    <th className="px-6 py-4 text-left font-semibold text-gray-700">Issued Date</th>
-                    <th className="px-6 py-4 text-left font-semibold text-gray-700">Due Date</th>
-                    <th className="px-6 py-4 text-left font-semibold text-gray-700">Actions</th>
+                    <th className="px-6 py-4 text-left font-semibold text-foreground">Invoice #</th>
+                    <th className="px-6 py-4 text-left font-semibold text-foreground">Guest</th>
+                    <th className="px-6 py-4 text-left font-semibold text-foreground">Property</th>
+                    <th className="px-6 py-4 text-left font-semibold text-foreground">Amount</th>
+                    <th className="px-6 py-4 text-left font-semibold text-foreground">Status</th>
+                    <th className="px-6 py-4 text-left font-semibold text-foreground">Issued Date</th>
+                    <th className="px-6 py-4 text-left font-semibold text-foreground">Due Date</th>
+                    <th className="px-6 py-4 text-left font-semibold text-foreground">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {invoices.map((inv) => (
-                    <tr key={inv.id} className="border-b hover:bg-slate-50 transition-colors">
-                      <td className="px-6 py-4 font-semibold text-blue-600">{inv.invoice_number}</td>
-                      <td className="px-6 py-4 font-medium">{inv.guest_name || "N/A"}</td>
-                      <td className="px-6 py-4">{inv.property_name || "N/A"}</td>
-                      <td className="px-6 py-4 font-semibold">${inv.amount?.toFixed(2) || '0.00'} {inv.tax_amount && inv.tax_amount > 0 ? `+ $${inv.tax_amount.toFixed(2)} tax` : ''}</td>
+                    <tr key={inv.id} className="border-b hover:bg-muted transition-colors">
+                      <td className="px-6 py-4 font-semibold text-primary">{inv.invoice_number}</td>
+                      <td className="px-6 py-4 font-medium text-foreground">{inv.guest_name || "N/A"}</td>
+                      <td className="px-6 py-4 text-foreground">{inv.property_name || "N/A"}</td>
+                      <td className="px-6 py-4 font-semibold text-foreground">${inv.amount?.toFixed(2) || '0.00'} {inv.tax_amount && inv.tax_amount > 0 ? `+ $${inv.tax_amount.toFixed(2)} tax` : ''}</td>
                       <td className="px-6 py-4">
                         <span
                           className={`px-3 py-1 rounded-full text-xs font-medium ${
                             inv.status === "paid"
-                              ? "bg-green-100 text-green-800 border border-green-200"
+                              ? "bg-green-500/20 text-green-600 dark:text-green-400 border border-green-500/30"
                               : inv.status === "sent"
-                                ? "bg-blue-100 text-blue-800 border border-blue-200"
+                                ? "bg-blue-500/20 text-blue-600 dark:text-blue-400 border border-blue-500/30"
                                 : inv.status === "draft"
-                                  ? "bg-gray-100 text-gray-800 border border-gray-200"
+                                  ? "bg-gray-500/20 text-gray-600 dark:text-gray-400 border border-gray-500/30"
                                   : inv.status === "overdue"
-                                    ? "bg-red-100 text-red-800 border border-red-200"
-                                    : "bg-yellow-100 text-yellow-800 border border-yellow-200"
+                                    ? "bg-red-500/20 text-red-600 dark:text-red-400 border border-red-500/30"
+                                    : "bg-yellow-500/20 text-yellow-600 dark:text-yellow-400 border border-yellow-500/30"
                           }`}
                         >
                           {inv.status.charAt(0).toUpperCase() + inv.status.slice(1)}
                         </span>
                       </td>
-                      <td className="px-6 py-4">{inv.issued_date ? new Date(inv.issued_date).toLocaleDateString() : "N/A"}</td>
-                      <td className="px-6 py-4">{inv.due_date ? new Date(inv.due_date).toLocaleDateString() : "N/A"}</td>
+                      <td className="px-6 py-4 text-foreground">{inv.issued_date ? new Date(inv.issued_date).toLocaleDateString() : "N/A"}</td>
+                      <td className="px-6 py-4 text-foreground">{inv.due_date ? new Date(inv.due_date).toLocaleDateString() : "N/A"}</td>
                       <td className="px-6 py-4 flex items-center gap-1">
                         <Button
                           variant="outline"

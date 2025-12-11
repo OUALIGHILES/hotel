@@ -177,7 +177,7 @@ export default function HomePage() {
                   <Link href="/dashboard/messages" className="relative p-2 rounded-full hover:bg-accent">
                     <MessageSquare className="w-5 h-5 text-muted-foreground" />
                     {unreadMessageCount > 0 && (
-                      <span className="absolute top-0 right-0 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center transform translate-x-1 -translate-y-1">
+                      <span className="absolute top-0 right-0 bg-destructive text-destructive-foreground text-xs rounded-full h-5 w-5 flex items-center justify-center transform translate-x-1 -translate-y-1">
                         {unreadMessageCount}
                       </span>
                     )}
@@ -191,7 +191,7 @@ export default function HomePage() {
                   </Button>
                 ) : (
                   <Button variant="outline" size="sm" onClick={() => router.push("/packages")}>
-                    <span className="text-yellow-600 font-bold">{t('upgradeToPremium')}</span>
+                    <span className="text-accent font-bold">{t('upgradeToPremium')}</span>
                   </Button>
                 )}
                 <Button variant="ghost" size="sm" onClick={handleLogout}>

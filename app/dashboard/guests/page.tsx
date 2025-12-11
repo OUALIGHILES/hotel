@@ -333,7 +333,7 @@ export default function GuestsPage() {
                     <Button
                       variant="ghost"
                       size="sm"
-                      className="h-7 w-7 p-0 text-red-600 hover:text-red-700"
+                      className="h-7 w-7 p-0 text-destructive hover:text-destructive"
                       onClick={() => handleDeleteGuest(guest.id)}
                     >
                       <Trash2 className="w-4 h-4" />
@@ -367,17 +367,17 @@ export default function GuestsPage() {
 
       {/* Add/Edit Guest Modal */}
       {showAddGuestForm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg max-w-md w-full max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-background border rounded-xl shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
             <div className="p-6">
               <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-bold">
+                <h2 className="text-xl font-bold text-foreground">
                   {editingGuest ? "Edit Guest" : "Add New Guest"}
                 </h2>
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="h-8 w-8 p-0"
+                  className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground"
                   onClick={() => {
                     setShowAddGuestForm(false);
                     setEditingGuest(null);
@@ -388,9 +388,9 @@ export default function GuestsPage() {
               </div>
 
               <form onSubmit={handleSubmitGuest}>
-                <div className="space-y-4">
-                  <div>
-                    <Label htmlFor="full_name">Full Name *</Label>
+                <div className="space-y-6">
+                  <div className="space-y-2">
+                    <Label htmlFor="full_name" className="text-foreground">Full Name *</Label>
                     <Input
                       id="full_name"
                       name="full_name"
@@ -398,11 +398,12 @@ export default function GuestsPage() {
                       onChange={handleChange}
                       required
                       placeholder="John Doe"
+                      className="bg-muted focus:ring-2 focus:ring-primary focus:border-transparent"
                     />
                   </div>
 
-                  <div>
-                    <Label htmlFor="email">Email</Label>
+                  <div className="space-y-2">
+                    <Label htmlFor="email" className="text-foreground">Email</Label>
                     <Input
                       id="email"
                       name="email"
@@ -410,11 +411,12 @@ export default function GuestsPage() {
                       value={formData.email}
                       onChange={handleChange}
                       placeholder="john@example.com"
+                      className="bg-muted focus:ring-2 focus:ring-primary focus:border-transparent"
                     />
                   </div>
 
-                  <div>
-                    <Label htmlFor="phone">Phone</Label>
+                  <div className="space-y-2">
+                    <Label htmlFor="phone" className="text-foreground">Phone</Label>
                     <Input
                       id="phone"
                       name="phone"
@@ -422,34 +424,37 @@ export default function GuestsPage() {
                       value={formData.phone}
                       onChange={handleChange}
                       placeholder="+1 (555) 123-4567"
+                      className="bg-muted focus:ring-2 focus:ring-primary focus:border-transparent"
                     />
                   </div>
 
                   <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <Label htmlFor="id_type">ID Type</Label>
+                    <div className="space-y-2">
+                      <Label htmlFor="id_type" className="text-foreground">ID Type</Label>
                       <Input
                         id="id_type"
                         name="id_type"
                         value={formData.id_type}
                         onChange={handleChange}
                         placeholder="Passport, ID, etc."
+                        className="bg-muted focus:ring-2 focus:ring-primary focus:border-transparent"
                       />
                     </div>
-                    <div>
-                      <Label htmlFor="id_number">ID Number</Label>
+                    <div className="space-y-2">
+                      <Label htmlFor="id_number" className="text-foreground">ID Number</Label>
                       <Input
                         id="id_number"
                         name="id_number"
                         value={formData.id_number}
                         onChange={handleChange}
                         placeholder="ID Number"
+                        className="bg-muted focus:ring-2 focus:ring-primary focus:border-transparent"
                       />
                     </div>
                   </div>
                 </div>
 
-                <div className="flex justify-end gap-2 mt-6">
+                <div className="flex justify-end gap-3 mt-8 pt-6 border-t border-border">
                   <Button
                     type="button"
                     variant="outline"
