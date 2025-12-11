@@ -29,6 +29,7 @@ import {
   User,
   Home,
   Bell,
+  DollarSign,
 } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
 import { useRouter } from "next/navigation"
@@ -98,7 +99,10 @@ export function PMSLayout({ children }: PMSLayoutProps) {
     { label: t('tasks'), href: "/dashboard/tasks", icon: CheckSquare2 },
     { label: t('invoices'), href: "/dashboard/invoices", icon: FileText },
     { label: t('receipts'), href: "/dashboard/receipts", icon: ReceiptText },
+    { label: t('expenses'), href: "/dashboard/expenses", icon: DollarSign },
     { label: t('reports'), href: "/dashboard/reports", icon: TrendingUp },
+    { label: t('ownerStatements'), href: "/owner-statements", icon: FileText },
+    { label: t('paymentTracking'), href: "/payment-tracking", icon: DollarSign },
     { label: t('paymentLinks'), href: "/dashboard/payment-links", icon: Link2 },
     { label: t('settings'), href: "/dashboard/settings", icon: Settings },
   ]

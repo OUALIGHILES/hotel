@@ -83,7 +83,23 @@ CREATE TABLE IF NOT EXISTS invoices (
   issued_date DATE,
   due_date DATE,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT now()
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+  -- Detailed pricing breakdown
+  nightly_rate NUMERIC(10, 2),
+  number_of_nights INTEGER,
+  cleaning_fee NUMERIC(10, 2) DEFAULT 0,
+  extra_guest_fee NUMERIC(10, 2) DEFAULT 0,
+  additional_services JSONB,
+  -- Taxes
+  vat_percentage NUMERIC(5, 2) DEFAULT 0,
+  tourism_fee NUMERIC(10, 2) DEFAULT 0,
+  -- Payment tracking
+  amount_paid NUMERIC(10, 2) DEFAULT 0,
+  outstanding_balance NUMERIC(10, 2) DEFAULT 0,
+  payment_method VARCHAR(50),
+  -- Invoice metadata
+  notes TEXT,
+  terms TEXT
 );
 
 -- Payments table

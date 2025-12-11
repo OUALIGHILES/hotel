@@ -134,6 +134,9 @@ const translations = {
     lightMode: 'Light Mode',
     systemMode: 'System Mode',
     currentTheme: 'Current Theme',
+    ownerStatements: 'Owner Statements',
+    paymentTracking: 'Payment Tracking',
+    expenses: 'Expenses',
   },
   ar: {
     adminDashboard: 'لوحة تحكم المشرف',
@@ -264,6 +267,9 @@ const translations = {
     reports: 'التقارير',
     paymentLinks: 'روابط الدفع',
     settings: 'الإعدادات',
+    ownerStatements: 'كشف حساب المالك',
+    paymentTracking: 'تتبع الدفع',
+    expenses: 'المصروفات',
   }
 };
 

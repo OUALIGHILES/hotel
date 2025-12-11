@@ -37,6 +37,20 @@ interface Invoice {
   created_at: string
   property_name?: string
   guest_name?: string
+  // Detailed pricing breakdown
+  nightly_rate?: number
+  number_of_nights?: number
+  cleaning_fee?: number
+  extra_guest_fee?: number
+  additional_services?: any
+  // Taxes
+  vat_percentage?: number
+  tourism_fee?: number
+  // Payment tracking
+  amount_paid?: number
+  outstanding_balance?: number
+  payment_method?: string
+  payment_status?: string
 }
 
 interface Reservation {
@@ -66,7 +80,20 @@ export default function InvoicesPage() {
     tax_amount: "",
     status: "draft",
     issued_date: "",
-    due_date: ""
+    due_date: "",
+    // Detailed pricing fields
+    nightly_rate: "",
+    number_of_nights: "",
+    cleaning_fee: "",
+    extra_guest_fee: "",
+    additional_services: "",
+    // Tax fields
+    vat_percentage: "",
+    tourism_fee: "",
+    // Payment fields
+    amount_paid: "",
+    outstanding_balance: "",
+    payment_method: ""
   })
   const router = useRouter()
   const supabase = createClient()
@@ -128,13 +155,26 @@ export default function InvoicesPage() {
           issued_date,
           due_date,
           created_at,
+          nightly_rate,
+          number_of_nights,
+          cleaning_fee,
+          extra_guest_fee,
+          additional_services,
+          vat_percentage,
+          tourism_fee,
+          amount_paid,
+          outstanding_balance,
+          payment_method,
           properties (name),
           reservations (guest_name)
         `)
         .in("property_id", propertyIds)
         .order("issued_date", { ascending: false })
 
-      if (error) throw error
+      if (error) {
+        console.error("Database error:", error);
+        throw error;
+      }
 
       // Transform the data to match our interface
       const transformedInvoices = (data || []).map(inv => ({
@@ -149,7 +189,20 @@ export default function InvoicesPage() {
         due_date: inv.due_date,
         created_at: inv.created_at,
         property_name: inv.properties?.name,
-        guest_name: inv.reservations?.guest_name
+        guest_name: inv.reservations?.guest_name,
+        // Detailed pricing breakdown
+        nightly_rate: inv.nightly_rate,
+        number_of_nights: inv.number_of_nights,
+        cleaning_fee: inv.cleaning_fee,
+        extra_guest_fee: inv.extra_guest_fee,
+        additional_services: inv.additional_services,
+        // Taxes
+        vat_percentage: inv.vat_percentage,
+        tourism_fee: inv.tourism_fee,
+        // Payment tracking
+        amount_paid: inv.amount_paid,
+        outstanding_balance: inv.outstanding_balance,
+        payment_method: inv.payment_method
       }))
 
       setInvoices(transformedInvoices)
@@ -317,6 +370,20 @@ export default function InvoicesPage() {
         status: newInvoice.status,
         issued_date: newInvoice.issued_date || null,
         due_date: newInvoice.due_date || null,
+        // Detailed pricing fields
+        nightly_rate: newInvoice.nightly_rate ? parseFloat(newInvoice.nightly_rate) : null,
+        number_of_nights: newInvoice.number_of_nights ? parseInt(newInvoice.number_of_nights) : null,
+        cleaning_fee: newInvoice.cleaning_fee ? parseFloat(newInvoice.cleaning_fee) : 0,
+        extra_guest_fee: newInvoice.extra_guest_fee ? parseFloat(newInvoice.extra_guest_fee) : 0,
+        // Additional services - this would be stored as JSON if needed
+        additional_services: newInvoice.additional_services || null,
+        // Tax fields
+        vat_percentage: newInvoice.vat_percentage ? parseFloat(newInvoice.vat_percentage) : 0,
+        tourism_fee: newInvoice.tourism_fee ? parseFloat(newInvoice.tourism_fee) : 0,
+        // Payment tracking fields
+        amount_paid: newInvoice.amount_paid ? parseFloat(newInvoice.amount_paid) : 0,
+        outstanding_balance: newInvoice.outstanding_balance ? parseFloat(newInvoice.outstanding_balance) : 0,
+        payment_method: newInvoice.payment_method || null,
       };
 
       const { error } = await supabase
@@ -333,7 +400,20 @@ export default function InvoicesPage() {
         tax_amount: "",
         status: "draft",
         issued_date: "",
-        due_date: ""
+        due_date: "",
+        // Detailed pricing fields
+        nightly_rate: "",
+        number_of_nights: "",
+        cleaning_fee: "",
+        extra_guest_fee: "",
+        additional_services: "",
+        // Tax fields
+        vat_percentage: "",
+        tourism_fee: "",
+        // Payment fields
+        amount_paid: "",
+        outstanding_balance: "",
+        payment_method: ""
       });
       setIsModalOpen(false);
 
@@ -458,6 +538,134 @@ export default function InvoicesPage() {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
+                  <Label htmlFor="nightly_rate" className="text-foreground">Nightly Rate</Label>
+                  <Input
+                    id="nightly_rate"
+                    type="number"
+                    step="0.01"
+                    value={newInvoice.nightly_rate}
+                    onChange={(e) => setNewInvoice({...newInvoice, nightly_rate: e.target.value})}
+                    placeholder="0.00"
+                    className="bg-muted focus:ring-2 focus:ring-primary focus:border-transparent"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="number_of_nights" className="text-foreground">Number of Nights</Label>
+                  <Input
+                    id="number_of_nights"
+                    type="number"
+                    value={newInvoice.number_of_nights}
+                    onChange={(e) => setNewInvoice({...newInvoice, number_of_nights: e.target.value})}
+                    placeholder="1"
+                    className="bg-muted focus:ring-2 focus:ring-primary focus:border-transparent"
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="cleaning_fee" className="text-foreground">Cleaning Fee</Label>
+                  <Input
+                    id="cleaning_fee"
+                    type="number"
+                    step="0.01"
+                    value={newInvoice.cleaning_fee}
+                    onChange={(e) => setNewInvoice({...newInvoice, cleaning_fee: e.target.value})}
+                    placeholder="0.00"
+                    className="bg-muted focus:ring-2 focus:ring-primary focus:border-transparent"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="extra_guest_fee" className="text-foreground">Extra Guest Fee</Label>
+                  <Input
+                    id="extra_guest_fee"
+                    type="number"
+                    step="0.01"
+                    value={newInvoice.extra_guest_fee}
+                    onChange={(e) => setNewInvoice({...newInvoice, extra_guest_fee: e.target.value})}
+                    placeholder="0.00"
+                    className="bg-muted focus:ring-2 focus:ring-primary focus:border-transparent"
+                  />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="additional_services" className="text-foreground">Additional Services</Label>
+                <Input
+                  id="additional_services"
+                  value={newInvoice.additional_services}
+                  onChange={(e) => setNewInvoice({...newInvoice, additional_services: e.target.value})}
+                  placeholder="Airport pickup, breakfast, etc."
+                  className="bg-muted focus:ring-2 focus:ring-primary focus:border-transparent"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="vat_percentage" className="text-foreground">VAT (%)</Label>
+                  <Input
+                    id="vat_percentage"
+                    type="number"
+                    step="0.01"
+                    value={newInvoice.vat_percentage}
+                    onChange={(e) => setNewInvoice({...newInvoice, vat_percentage: e.target.value})}
+                    placeholder="0.00"
+                    className="bg-muted focus:ring-2 focus:ring-primary focus:border-transparent"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="tourism_fee" className="text-foreground">Tourism Fee</Label>
+                  <Input
+                    id="tourism_fee"
+                    type="number"
+                    step="0.01"
+                    value={newInvoice.tourism_fee}
+                    onChange={(e) => setNewInvoice({...newInvoice, tourism_fee: e.target.value})}
+                    placeholder="0.00"
+                    className="bg-muted focus:ring-2 focus:ring-primary focus:border-transparent"
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="amount_paid" className="text-foreground">Amount Paid</Label>
+                  <Input
+                    id="amount_paid"
+                    type="number"
+                    step="0.01"
+                    value={newInvoice.amount_paid}
+                    onChange={(e) => setNewInvoice({...newInvoice, amount_paid: e.target.value})}
+                    placeholder="0.00"
+                    className="bg-muted focus:ring-2 focus:ring-primary focus:border-transparent"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="outstanding_balance" className="text-foreground">Outstanding Balance</Label>
+                  <Input
+                    id="outstanding_balance"
+                    type="number"
+                    step="0.01"
+                    value={newInvoice.outstanding_balance}
+                    onChange={(e) => setNewInvoice({...newInvoice, outstanding_balance: e.target.value})}
+                    placeholder="0.00"
+                    className="bg-muted focus:ring-2 focus:ring-primary focus:border-transparent"
+                  />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="payment_method" className="text-foreground">Payment Method</Label>
+                <select
+                  id="payment_method"
+                  value={newInvoice.payment_method}
+                  onChange={(e) => setNewInvoice({...newInvoice, payment_method: e.target.value})}
+                  className="w-full px-3 py-2 border rounded-lg bg-muted text-foreground focus:ring-2 focus:ring-primary focus:border-transparent"
+                >
+                  <option value="">Select Payment Method</option>
+                  <option value="cash">Cash</option>
+                  <option value="online">Online</option>
+                  <option value="pos">POS</option>
+                  <option value="bank_transfer">Bank Transfer</option>
+                </select>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
                   <Label htmlFor="issued_date" className="text-foreground">Issued Date</Label>
                   <Input
                     id="issued_date"
@@ -558,7 +766,7 @@ export default function InvoicesPage() {
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => downloadInvoice(inv.id)}
+                          onClick={() => downloadInvoice(inv)}
                           title="Download Invoice"
                           className="h-8 w-8 p-0 ml-1"
                         >
@@ -577,17 +785,8 @@ export default function InvoicesPage() {
   )
 
   // Function to handle downloading an invoice
-  const downloadInvoice = async (invoiceId: string) => {
+  const downloadInvoice = (invoice: Invoice) => {
     try {
-      // Get the specific invoice data
-      const invoice = invoices.find(inv => inv.id === invoiceId);
-      if (!invoice) {
-        console.error("Invoice not found");
-        return;
-      }
-
-      // In a real implementation, this would generate a PDF
-      // For now, we'll simulate by creating a mock PDF download
       // Create a simple text file as a mock for the PDF
       const invoiceContent = `
 INVOICE DETAILS
@@ -600,6 +799,9 @@ Tax Amount: $${invoice.tax_amount?.toFixed(2) || '0.00'}
 Status: ${invoice.status}
 Issued Date: ${invoice.issued_date ? new Date(invoice.issued_date).toLocaleDateString() : "N/A"}
 Due Date: ${invoice.due_date ? new Date(invoice.due_date).toLocaleDateString() : "N/A"}
+Payment Method: ${invoice.payment_method || 'N/A'}
+Amount Paid: $${(invoice.amount_paid || 0).toFixed(2)}
+Outstanding Balance: $${(invoice.outstanding_balance || 0).toFixed(2)}
       `;
 
       // Create a blob and download link
@@ -619,5 +821,3 @@ Due Date: ${invoice.due_date ? new Date(invoice.due_date).toLocaleDateString() :
   }
 
 }
-
-// Function to handle downloading an invoice
