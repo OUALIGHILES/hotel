@@ -4,6 +4,8 @@ import { useState, useEffect, use } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, Check, X, Calendar, User, Mail, Phone, CreditCard, DollarSign, Eye, Printer } from "lucide-react";
 
@@ -20,6 +22,9 @@ interface Reservation {
   special_requests: string;
   total_price: number;
   payment_status: string;
+  payment_method?: string;
+  amount_paid?: number;
+  balance_due?: number;
   created_at: string;
 }
 
@@ -27,6 +32,7 @@ export default function ReservationDetailsPage({ params }: { params: { id: strin
   const [reservation, setReservation] = useState<Reservation | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [paymentMethod, setPaymentMethod] = useState<string | null>(null);
   const router = useRouter();
   const supabase = createClient();
   const id = use(params).id;
@@ -114,6 +120,9 @@ export default function ReservationDetailsPage({ params }: { params: { id: strin
           special_requests,
           total_price,
           payment_status,
+          payment_method,
+          amount_paid,
+          balance_due,
           created_at
         `)
         .in("unit_id", unitIds) // Ensure it's for the user's units
@@ -154,6 +163,35 @@ export default function ReservationDetailsPage({ params }: { params: { id: strin
     } catch (error) {
       console.error("Error updating reservation status:", error);
       alert("Error updating reservation status. Please try again.");
+    }
+  };
+
+  const handlePaymentStatusUpdate = async (newPaymentStatus: string) => {
+    if (!reservation) return;
+
+    try {
+      const { error } = await supabase
+        .from("reservations")
+        .update({ payment_status: newPaymentStatus })
+        .eq("id", reservation.id);
+
+      if (error) throw error;
+
+      // Update local state
+      setReservation({ ...reservation, payment_status: newPaymentStatus });
+
+      // If changing to paid, prompt for payment method
+      if (newPaymentStatus === "paid") {
+        setPaymentMethod(null); // Reset to show method selection
+      } else {
+        setPaymentMethod(null); // Reset method
+      }
+
+      // Show success message
+      alert(`Payment status updated to ${newPaymentStatus}`);
+    } catch (error) {
+      console.error("Error updating payment status:", error);
+      alert("Error updating payment status. Please try again.");
     }
   };
 
@@ -204,6 +242,199 @@ export default function ReservationDetailsPage({ params }: { params: { id: strin
       printWindow.print();
       printWindow.close();
     }
+  };
+
+  // Cash Payment Form Component
+  const CashPaymentForm = ({ reservation, supabase, setReservation, paymentMethod }) => {
+    const [amountReceived, setAmountReceived] = useState("");
+    const [balance, setBalance] = useState("");
+    const [loading, setLoading] = useState(false);
+
+    const handleCashPaymentSubmit = async (e: React.FormEvent) => {
+      e.preventDefault();
+      setLoading(true);
+
+      try {
+        // Calculate balance if amounts provided
+        let calculatedBalance = reservation.total_price;
+        if (amountReceived) {
+          const received = parseFloat(amountReceived);
+          calculatedBalance = reservation.total_price - received;
+        }
+
+        // Update reservation with payment method and details
+        const { error } = await supabase
+          .from("reservations")
+          .update({
+            payment_method: "cash",
+            amount_paid: amountReceived ? parseFloat(amountReceived) : reservation.total_price,
+            balance_due: calculatedBalance,
+            payment_status: calculatedBalance === 0 ? "paid" : "partial"
+          })
+          .eq("id", reservation.id);
+
+        if (error) throw error;
+
+        // Update local state
+        setReservation(prev => ({
+          ...prev,
+          payment_method: "cash",
+          amount_paid: amountReceived ? parseFloat(amountReceived) : reservation.total_price,
+          balance_due: calculatedBalance,
+          payment_status: calculatedBalance === 0 ? "paid" : "partial"
+        }));
+
+        alert("Cash payment recorded successfully!");
+      } catch (error) {
+        console.error("Error recording cash payment:", error);
+        alert("Error recording cash payment. Please try again.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    return (
+      <div className="border rounded-lg p-4 bg-muted">
+        <form onSubmit={handleCashPaymentSubmit} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium mb-1">Amount Received ($)</label>
+            <input
+              type="number"
+              step="0.01"
+              min="0"
+              value={amountReceived}
+              onChange={(e) => setAmountReceived(e.target.value)}
+              className="w-full px-3 py-2 border rounded-lg bg-background text-foreground"
+              placeholder="Enter amount received"
+              required
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-1">Remaining Balance ($)</label>
+            <input
+              type="number"
+              step="0.01"
+              min="0"
+              value={balance}
+              onChange={(e) => setBalance(e.target.value)}
+              className="w-full px-3 py-2 border rounded-lg bg-background text-foreground"
+              placeholder="Enter remaining balance"
+            />
+            <p className="text-xs text-muted-foreground mt-1">
+              Calculated automatically if you enter the received amount
+            </p>
+          </div>
+
+          <Button type="submit" disabled={loading} className="w-full">
+            {loading ? "Processing..." : "Record Cash Payment"}
+          </Button>
+        </form>
+      </div>
+    );
+  };
+
+  // Link Payment Form Component
+  const LinkPaymentForm = ({ reservation, supabase, setReservation, paymentMethod }) => {
+    const [amount, setAmount] = useState("");
+    const [cardNumber, setCardNumber] = useState("");
+    const [balance, setBalance] = useState("");
+    const [loading, setLoading] = useState(false);
+
+    const handleLinkPaymentSubmit = async (e: React.FormEvent) => {
+      e.preventDefault();
+      setLoading(true);
+
+      try {
+        // Calculate balance if amounts provided
+        let calculatedBalance = reservation.total_price;
+        if (amount) {
+          const received = parseFloat(amount);
+          calculatedBalance = reservation.total_price - received;
+        }
+
+        // Update reservation with payment method and details
+        const { error } = await supabase
+          .from("reservations")
+          .update({
+            payment_method: "link",
+            amount_paid: amount ? parseFloat(amount) : reservation.total_price,
+            balance_due: calculatedBalance,
+            payment_status: calculatedBalance === 0 ? "paid" : "partial"
+          })
+          .eq("id", reservation.id);
+
+        if (error) throw error;
+
+        // Update local state
+        setReservation(prev => ({
+          ...prev,
+          payment_method: "link",
+          amount_paid: amount ? parseFloat(amount) : reservation.total_price,
+          balance_due: calculatedBalance,
+          payment_status: calculatedBalance === 0 ? "paid" : "partial"
+        }));
+
+        alert("Link payment recorded successfully!");
+      } catch (error) {
+        console.error("Error recording link payment:", error);
+        alert("Error recording link payment. Please try again.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    return (
+      <div className="border rounded-lg p-4 bg-muted">
+        <form onSubmit={handleLinkPaymentSubmit} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium mb-1">Amount ($)</label>
+            <input
+              type="number"
+              step="0.01"
+              min="0"
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
+              className="w-full px-3 py-2 border rounded-lg bg-background text-foreground"
+              placeholder="Enter payment amount"
+              required
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-1">Card Number</label>
+            <input
+              type="text"
+              value={cardNumber}
+              onChange={(e) => setCardNumber(e.target.value)}
+              className="w-full px-3 py-2 border rounded-lg bg-background text-foreground"
+              placeholder="Enter card number"
+              required
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-1">Remaining Balance ($)</label>
+            <input
+              type="number"
+              step="0.01"
+              min="0"
+              value={balance}
+              onChange={(e) => setBalance(e.target.value)}
+              className="w-full px-3 py-2 border rounded-lg bg-background text-foreground"
+              placeholder="Enter remaining balance"
+            />
+            <p className="text-xs text-muted-foreground mt-1">
+              Calculated automatically if you enter the payment amount
+            </p>
+          </div>
+
+          <Button type="submit" disabled={loading} className="w-full">
+            {loading ? "Processing..." : "Record Link Payment"}
+          </Button>
+        </form>
+      </div>
+    );
   };
 
   if (loading) {
@@ -317,23 +548,49 @@ export default function ReservationDetailsPage({ params }: { params: { id: strin
               </div>
               <div>
                 <h2 className="text-xl font-semibold text-foreground">Payment Information</h2>
-                <div className="mt-2 grid grid-cols-2 gap-4">
-                  <div>
-                    <p className="text-sm text-muted-foreground">Total Price</p>
-                    <p className="font-medium text-foreground">${reservation.total_price.toFixed(2)}</p>
+                <div className="mt-2 space-y-2">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-sm text-muted-foreground">Total Price</p>
+                      <p className="font-medium text-foreground">${reservation.total_price.toFixed(2)}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">Payment Status</p>
+                      <span
+                        className={`px-3 py-1 rounded-full text-sm font-medium ${
+                          reservation.payment_status === "paid"
+                            ? "bg-green-500/20 text-green-600 dark:text-green-400 border border-green-500/30"
+                            : reservation.payment_status === "partial"
+                              ? "bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/30"
+                              : "bg-red-500/20 text-red-600 dark:text-red-400 border border-red-500/30"
+                        }`}
+                      >
+                        {reservation.payment_status}
+                      </span>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">Payment Status</p>
-                    <span
-                      className={`px-3 py-1 rounded-full text-sm font-medium ${
-                        reservation.payment_status === "paid"
-                          ? "bg-green-500/20 text-green-600 dark:text-green-400 border border-green-500/30"
-                          : "bg-red-500/20 text-red-600 dark:text-red-400 border border-red-500/30"
-                      }`}
-                    >
-                      {reservation.payment_status}
-                    </span>
-                  </div>
+
+                  {/* Payment Details */}
+                  {reservation.payment_method && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2 border-t border-border">
+                      <div>
+                        <p className="text-sm text-muted-foreground">Payment Method</p>
+                        <p className="font-medium text-foreground capitalize">{reservation.payment_method}</p>
+                      </div>
+                      {reservation.amount_paid !== undefined && (
+                        <div>
+                          <p className="text-sm text-muted-foreground">Amount Paid</p>
+                          <p className="font-medium text-foreground">${reservation.amount_paid.toFixed(2)}</p>
+                        </div>
+                      )}
+                      {reservation.balance_due !== undefined && (
+                        <div>
+                          <p className="text-sm text-muted-foreground">Balance Due</p>
+                          <p className="font-medium text-foreground">${reservation.balance_due.toFixed(2)}</p>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -432,6 +689,75 @@ export default function ReservationDetailsPage({ params }: { params: { id: strin
                   </Button>
                 )}
               </div>
+            </CardContent>
+          </Card>
+
+          {/* Payment Status Card */}
+          <Card className="border rounded-xl shadow-lg">
+            <CardContent className="p-6">
+              <h2 className="text-xl font-semibold text-foreground mb-4">Payment Status</h2>
+
+              <div className="mb-4">
+                <p className="text-sm font-medium text-foreground">Has the guest paid?</p>
+                <div className="flex gap-2 mt-2">
+                  <Button
+                    className="flex-1"
+                    variant={reservation.payment_status === "paid" ? "default" : "outline"}
+                    onClick={() => handlePaymentStatusUpdate("paid")}
+                  >
+                    Yes
+                  </Button>
+                  <Button
+                    className="flex-1"
+                    variant={reservation.payment_status === "unpaid" ? "default" : "outline"}
+                    onClick={() => handlePaymentStatusUpdate("unpaid")}
+                  >
+                    No
+                  </Button>
+                </div>
+              </div>
+
+              {(reservation.payment_status === "paid" || reservation.payment_status === "partial") && (
+                <div className="space-y-4">
+                  <p className="text-sm font-medium text-foreground">Choose payment method:</p>
+                  <div className="space-y-2">
+                    <Button
+                      className="w-full justify-start"
+                      variant={paymentMethod === "cash" ? "default" : "outline"}
+                      onClick={() => setPaymentMethod("cash")}
+                    >
+                      <DollarSign className="w-4 h-4 mr-2" />
+                      Cash
+                    </Button>
+                    <Button
+                      className="w-full justify-start"
+                      variant={paymentMethod === "link" ? "default" : "outline"}
+                      onClick={() => setPaymentMethod("link")}
+                    >
+                      <CreditCard className="w-4 h-4 mr-2" />
+                      Link Payment
+                    </Button>
+                  </div>
+
+                  {paymentMethod === "cash" && (
+                    <CashPaymentForm
+                      reservation={reservation}
+                      supabase={supabase}
+                      setReservation={setReservation}
+                      paymentMethod={paymentMethod}
+                    />
+                  )}
+
+                  {paymentMethod === "link" && (
+                    <LinkPaymentForm
+                      reservation={reservation}
+                      supabase={supabase}
+                      setReservation={setReservation}
+                      paymentMethod={paymentMethod}
+                    />
+                  )}
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>
