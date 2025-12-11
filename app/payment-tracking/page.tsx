@@ -380,7 +380,6 @@ export default function PaymentTrackingPage() {
       const userId = authResult.user.id;
 
       // Extract form data
-      const transactionId = formData.get('transaction_id') as string;
       const amount = parseFloat(formData.get('amount') as string);
       const type = formData.get('type') as string;
       const paymentMethod = formData.get('payment_method') as string;
@@ -389,6 +388,9 @@ export default function PaymentTrackingPage() {
       const description = formData.get('description') as string;
       const notes = formData.get('notes') as string;
       const referenceNumber = formData.get('reference_number') as string;
+
+      // Generate a unique transaction ID automatically to avoid conflicts
+      const transactionId = `TXN_${Date.now()}_${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
 
       if (formType === 'transaction') {
         // Create a payment transaction
@@ -1047,12 +1049,12 @@ export default function PaymentTrackingPage() {
                 <div className="space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <Label htmlFor="transaction-id">Transaction ID</Label>
-                      <Input 
-                        id="transaction-id" 
-                        name="transaction_id" 
-                        placeholder="Enter transaction ID" 
-                        required
+                      <Label htmlFor="transaction-id">Transaction ID (Auto-generated)</Label>
+                      <Input
+                        id="transaction-id"
+                        name="transaction_id"
+                        placeholder="Auto-generated"
+                        disabled
                       />
                     </div>
                     <div>

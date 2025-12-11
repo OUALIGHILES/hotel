@@ -1,29 +1,39 @@
 -- Payment Tracking and Disbursement Tables for Wellhost PMS
 
 -- Supported payment methods table
-CREATE TYPE payment_method_type AS ENUM (
-    'cash',
-    'bank_transfer',
-    'pos',
-    'credit_card',
-    'debit_card',
-    'apple_pay',
-    'stc_pay',
-    'internal_wallet',
-    'hyperpay',
-    'tap',
-    'stripe'
-);
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'payment_method_type') THEN
+        CREATE TYPE payment_method_type AS ENUM (
+            'cash',
+            'bank_transfer',
+            'pos',
+            'credit_card',
+            'debit_card',
+            'apple_pay',
+            'stc_pay',
+            'internal_wallet',
+            'hyperpay',
+            'tap',
+            'stripe'
+        );
+    END IF;
+END $$;
 
 -- Transaction types
-CREATE TYPE transaction_type AS ENUM (
-    'payout_to_owner',
-    'refund_to_guest',
-    'staff_payment',
-    'supplier_payment',
-    'payment_received',
-    'charge'
-);
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'transaction_type') THEN
+        CREATE TYPE transaction_type AS ENUM (
+            'payout_to_owner',
+            'refund_to_guest',
+            'staff_payment',
+            'supplier_payment',
+            'payment_received',
+            'charge'
+        );
+    END IF;
+END $$;
 
 -- Payment transactions table (for tracking funds received)
 CREATE TABLE IF NOT EXISTS payment_transactions (
@@ -93,51 +103,130 @@ CREATE TABLE IF NOT EXISTS owner_balances (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
+-- Unique index to support ON CONFLICT clause in triggers that handles NULL property_id values
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_class c WHERE c.relname = 'idx_owner_property_unique') THEN
+        CREATE UNIQUE INDEX idx_owner_property_unique ON owner_balances (owner_id, COALESCE(property_id, '00000000-0000-0000-0000-000000000000'::UUID));
+    END IF;
+END $$;
+
 -- Indexes for better performance
-CREATE INDEX IF NOT EXISTS idx_payment_transactions_owner_id ON payment_transactions(owner_id);
-CREATE INDEX IF NOT EXISTS idx_payment_transactions_guest_id ON payment_transactions(guest_id);
-CREATE INDEX IF NOT EXISTS idx_payment_transactions_property_id ON payment_transactions(property_id);
-CREATE INDEX IF NOT EXISTS idx_payment_transactions_reservation_id ON payment_transactions(reservation_id);
-CREATE INDEX IF NOT EXISTS idx_payment_transactions_date ON payment_transactions(date);
-CREATE INDEX IF NOT EXISTS idx_payment_transactions_transaction_id ON payment_transactions(transaction_id);
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_class c WHERE c.relname = 'idx_payment_transactions_owner_id') THEN
+        CREATE INDEX idx_payment_transactions_owner_id ON payment_transactions(owner_id);
+    END IF;
+END $$;
 
-CREATE INDEX IF NOT EXISTS idx_disbursement_records_owner_id ON disbursement_records(owner_id);
-CREATE INDEX IF NOT EXISTS idx_disbursement_records_guest_id ON disbursement_records(guest_id);
-CREATE INDEX IF NOT EXISTS idx_disbursement_records_date ON disbursement_records(date);
-CREATE INDEX IF NOT EXISTS idx_disbursement_records_transaction_id ON disbursement_records(transaction_id);
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_class c WHERE c.relname = 'idx_payment_transactions_guest_id') THEN
+        CREATE INDEX idx_payment_transactions_guest_id ON payment_transactions(guest_id);
+    END IF;
+END $$;
 
-CREATE INDEX IF NOT EXISTS idx_owner_balances_owner_id ON owner_balances(owner_id);
-CREATE INDEX IF NOT EXISTS idx_owner_balances_property_id ON owner_balances(property_id);
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_class c WHERE c.relname = 'idx_payment_transactions_property_id') THEN
+        CREATE INDEX idx_payment_transactions_property_id ON payment_transactions(property_id);
+    END IF;
+END $$;
+
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_class c WHERE c.relname = 'idx_payment_transactions_reservation_id') THEN
+        CREATE INDEX idx_payment_transactions_reservation_id ON payment_transactions(reservation_id);
+    END IF;
+END $$;
+
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_class c WHERE c.relname = 'idx_payment_transactions_date') THEN
+        CREATE INDEX idx_payment_transactions_date ON payment_transactions(date);
+    END IF;
+END $$;
+
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_class c WHERE c.relname = 'idx_payment_transactions_transaction_id') THEN
+        CREATE INDEX idx_payment_transactions_transaction_id ON payment_transactions(transaction_id);
+    END IF;
+END $$;
+
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_class c WHERE c.relname = 'idx_disbursement_records_owner_id') THEN
+        CREATE INDEX idx_disbursement_records_owner_id ON disbursement_records(owner_id);
+    END IF;
+END $$;
+
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_class c WHERE c.relname = 'idx_disbursement_records_guest_id') THEN
+        CREATE INDEX idx_disbursement_records_guest_id ON disbursement_records(guest_id);
+    END IF;
+END $$;
+
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_class c WHERE c.relname = 'idx_disbursement_records_date') THEN
+        CREATE INDEX idx_disbursement_records_date ON disbursement_records(date);
+    END IF;
+END $$;
+
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_class c WHERE c.relname = 'idx_disbursement_records_transaction_id') THEN
+        CREATE INDEX idx_disbursement_records_transaction_id ON disbursement_records(transaction_id);
+    END IF;
+END $$;
+
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_class c WHERE c.relname = 'idx_owner_balances_owner_id') THEN
+        CREATE INDEX idx_owner_balances_owner_id ON owner_balances(owner_id);
+    END IF;
+END $$;
+
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_class c WHERE c.relname = 'idx_owner_balances_property_id') THEN
+        CREATE INDEX idx_owner_balances_property_id ON owner_balances(property_id);
+    END IF;
+END $$;
 
 -- Function to update owner balance when a new payment transaction is added
+DROP FUNCTION IF EXISTS update_owner_balance_on_payment() CASCADE;
 CREATE OR REPLACE FUNCTION update_owner_balance_on_payment()
 RETURNS TRIGGER AS $$
 BEGIN
     -- Only update balance when transaction is completed and for owner-related payments
     IF NEW.status = 'completed' AND NEW.owner_id IS NOT NULL THEN
         INSERT INTO owner_balances (owner_id, property_id, current_balance)
-        VALUES (NEW.owner_id, NEW.property_id, 
-                CASE 
+        VALUES (NEW.owner_id, NEW.property_id,
+                CASE
                     WHEN NEW.type = 'payment_received' THEN NEW.amount
                     WHEN NEW.type = 'charge' THEN -NEW.amount
                     ELSE 0
                 END)
         ON CONFLICT (owner_id, COALESCE(property_id, '00000000-0000-0000-0000-000000000000'::UUID))
-        DO UPDATE SET 
-            current_balance = owner_balances.current_balance + 
-                             CASE 
+        DO UPDATE SET
+            current_balance = owner_balances.current_balance +
+                             CASE
                                  WHEN NEW.type = 'payment_received' THEN NEW.amount
                                  WHEN NEW.type = 'charge' THEN -NEW.amount
                                  ELSE 0
                              END,
             last_updated = NOW();
     END IF;
-    
+
     RETURN NEW;
 END;
 $$ language 'plpgsql';
 
 -- Function to update owner balance when a disbursement is made
+DROP FUNCTION IF EXISTS update_owner_balance_on_disbursement() CASCADE;
 CREATE OR REPLACE FUNCTION update_owner_balance_on_disbursement()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -146,27 +235,36 @@ BEGIN
         INSERT INTO owner_balances (owner_id, property_id, current_balance)
         VALUES (NEW.owner_id, NEW.property_id, -NEW.amount)
         ON CONFLICT (owner_id, COALESCE(property_id, '00000000-0000-0000-0000-000000000000'::UUID))
-        DO UPDATE SET 
+        DO UPDATE SET
             current_balance = owner_balances.current_balance - NEW.amount,
             last_updated = NOW();
     END IF;
-    
+
     RETURN NEW;
 END;
 $$ language 'plpgsql';
 
 -- Triggers to update balances automatically
-CREATE TRIGGER trigger_update_owner_balance_on_payment
-    AFTER INSERT OR UPDATE ON payment_transactions
-    FOR EACH ROW
-    EXECUTE FUNCTION update_owner_balance_on_payment();
+DO $$
+BEGIN
+    DROP TRIGGER IF EXISTS trigger_update_owner_balance_on_payment ON payment_transactions;
+    CREATE TRIGGER trigger_update_owner_balance_on_payment
+        AFTER INSERT OR UPDATE ON payment_transactions
+        FOR EACH ROW
+        EXECUTE FUNCTION update_owner_balance_on_payment();
+END $$;
 
-CREATE TRIGGER trigger_update_owner_balance_on_disbursement
-    AFTER INSERT OR UPDATE ON disbursement_records
-    FOR EACH ROW
-    EXECUTE FUNCTION update_owner_balance_on_disbursement();
+DO $$
+BEGIN
+    DROP TRIGGER IF EXISTS trigger_update_owner_balance_on_disbursement ON disbursement_records;
+    CREATE TRIGGER trigger_update_owner_balance_on_disbursement
+        AFTER INSERT OR UPDATE ON disbursement_records
+        FOR EACH ROW
+        EXECUTE FUNCTION update_owner_balance_on_disbursement();
+END $$;
 
 -- Function to prevent duplicate payouts
+DROP FUNCTION IF EXISTS prevent_duplicate_payouts() CASCADE;
 CREATE OR REPLACE FUNCTION prevent_duplicate_payouts()
 RETURNS TRIGGER AS $$
 DECLARE
@@ -190,10 +288,12 @@ END;
 $$ language 'plpgsql';
 
 -- Trigger to prevent duplicate payouts
-CREATE TRIGGER trigger_prevent_duplicate_payouts
-    BEFORE INSERT OR UPDATE ON disbursement_records
-    FOR EACH ROW
-    WHEN (NEW.type = 'payout_to_owner')
-    EXECUTE FUNCTION prevent_duplicate_payouts();
-
-COMMIT;
+DO $$
+BEGIN
+    DROP TRIGGER IF EXISTS trigger_prevent_duplicate_payouts ON disbursement_records;
+    CREATE TRIGGER trigger_prevent_duplicate_payouts
+        BEFORE INSERT OR UPDATE ON disbursement_records
+        FOR EACH ROW
+        WHEN (NEW.type = 'payout_to_owner')
+        EXECUTE FUNCTION prevent_duplicate_payouts();
+END $$;

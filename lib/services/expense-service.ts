@@ -186,9 +186,13 @@ export const expenseService = {
     // Ensure expense_date is properly formatted and not null to avoid any date-related constraint errors
     const expenseDate = expense.expense_date || new Date().toISOString();
 
+    // Create a copy of expense and remove the id field to prevent conflicts
+    const expenseCopy = { ...expense };
+    delete expenseCopy.id;
+
     // Construct the insert object with explicit field assignments
     const insertData: any = {
-      ...expense,
+      ...expenseCopy,
       expense_date: expenseDate,
       total_amount: totalAmount
     };
