@@ -80,6 +80,8 @@ interface OwnerBalance {
   current_balance: number
   currency: string
   last_updated: string
+  notes: string
+  created_at?: string
   property_name?: string
 }
 
@@ -99,7 +101,10 @@ export default function PaymentTrackingPage() {
   const [activeTab, setActiveTab] = useState<'transactions' | 'disbursements' | 'balances'>('transactions')
   const [showCreateForm, setShowCreateForm] = useState(false)
   const [formType, setFormType] = useState<'transaction' | 'disbursement'>('transaction')
-  
+  const [showDetailsModal, setShowDetailsModal] = useState(false)
+  const [selectedItem, setSelectedItem] = useState<PaymentTransaction | DisbursementRecord | OwnerBalance | null>(null)
+  const [detailsType, setDetailsType] = useState<'transaction' | 'disbursement' | 'balance' | null>(null)
+
   const supabase = createClient()
   const router = useRouter()
 
@@ -431,7 +436,6 @@ export default function PaymentTrackingPage() {
             date,
             status,
             notes,
-            reference_number: referenceNumber,
             owner_id: type === 'payout_to_owner' ? userId : null,
             guest_id: type === 'refund_to_guest' ? userId : null,
           }])
@@ -455,6 +459,12 @@ export default function PaymentTrackingPage() {
       console.error(`Error creating ${formType}:`, error);
       alert(`Error creating ${formType}: ${error.message || "Please try again."}`);
     }
+  }
+
+  const handleViewDetails = (item: PaymentTransaction | DisbursementRecord | OwnerBalance, type: 'transaction' | 'disbursement' | 'balance') => {
+    setSelectedItem(item);
+    setDetailsType(type);
+    setShowDetailsModal(true);
   }
 
   const handleFilterChange = (field: keyof typeof filters, value: string) => {
@@ -827,6 +837,7 @@ export default function PaymentTrackingPage() {
                               variant="outline"
                               size="sm"
                               title="View Details"
+                              onClick={() => handleViewDetails(trans, 'transaction')}
                             >
                               <Eye className="w-4 h-4" />
                             </Button>
@@ -909,6 +920,7 @@ export default function PaymentTrackingPage() {
                               variant="outline"
                               size="sm"
                               title="View Details"
+                              onClick={() => handleViewDetails(disp, 'disbursement')}
                             >
                               <Eye className="w-4 h-4" />
                             </Button>
@@ -981,6 +993,7 @@ export default function PaymentTrackingPage() {
                               variant="outline"
                               size="sm"
                               title="View Details"
+                              onClick={() => handleViewDetails(bal, 'balance')}
                             >
                               <Eye className="w-4 h-4" />
                             </Button>
@@ -1156,20 +1169,22 @@ export default function PaymentTrackingPage() {
                   </div>
                   
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <Label htmlFor="reference-number">Reference Number</Label>
-                      <Input 
-                        id="reference-number" 
-                        name="reference_number" 
-                        placeholder="Reference number" 
-                      />
-                    </div>
+                    {formType === 'transaction' && (
+                      <div>
+                        <Label htmlFor="reference-number">Reference Number</Label>
+                        <Input
+                          id="reference-number"
+                          name="reference_number"
+                          placeholder="Reference number"
+                        />
+                      </div>
+                    )}
                     <div>
                       <Label htmlFor="attachment">Attachment</Label>
-                      <Input 
-                        id="attachment" 
-                        type="file" 
-                        accept="image/*,application/pdf" 
+                      <Input
+                        id="attachment"
+                        type="file"
+                        accept="image/*,application/pdf"
                       />
                     </div>
                   </div>
@@ -1188,6 +1203,193 @@ export default function PaymentTrackingPage() {
                   </div>
                 </div>
               </form>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Details Modal */}
+      {showDetailsModal && selectedItem && (
+        <div className="fixed inset-0 bg-black bg-opacity-30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-background rounded-xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto border">
+            <div className="flex justify-between items-center border-b p-6">
+              <h3 className="text-xl font-semibold">
+                {detailsType === 'transaction' && 'Transaction Details'}
+                {detailsType === 'disbursement' && 'Disbursement Details'}
+                {detailsType === 'balance' && 'Balance Details'}
+              </h3>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowDetailsModal(false)}
+              >
+                <X className="w-5 h-5" />
+              </Button>
+            </div>
+
+            <div className="p-6 space-y-4">
+              {detailsType === 'transaction' && selectedItem && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <p className="text-muted-foreground">Transaction ID</p>
+                    <p className="font-medium">{(selectedItem as PaymentTransaction).transaction_id}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground">Type</p>
+                    <p className="font-medium capitalize">{(selectedItem as PaymentTransaction).type.replace('_', ' ')}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground">Amount</p>
+                    <p className="font-medium">{(selectedItem as PaymentTransaction).amount?.toFixed(2)} {(selectedItem as PaymentTransaction).currency}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground">Payment Method</p>
+                    <p className="font-medium capitalize">{(selectedItem as PaymentTransaction).payment_method.replace('_', ' ')}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground">Date</p>
+                    <p className="font-medium">{new Date((selectedItem as PaymentTransaction).date).toLocaleDateString()}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground">Status</p>
+                    <p className="font-medium">
+                      <span className={`px-2 py-1 rounded-full text-xs ${
+                        statusColors[(selectedItem as PaymentTransaction).status as keyof typeof statusColors] || "bg-gray-100 text-gray-800"
+                      }`}>
+                        {(selectedItem as PaymentTransaction).status.replace('_', ' ')}
+                      </span>
+                    </p>
+                  </div>
+                  <div className="md:col-span-2">
+                    <p className="text-muted-foreground">Description</p>
+                    <p className="font-medium">{(selectedItem as PaymentTransaction).description || 'N/A'}</p>
+                  </div>
+                  <div className="md:col-span-2">
+                    <p className="text-muted-foreground">Reference Number</p>
+                    <p className="font-medium">{(selectedItem as PaymentTransaction).reference_number || 'N/A'}</p>
+                  </div>
+                  <div className="md:col-span-2">
+                    <p className="text-muted-foreground">Notes</p>
+                    <p className="font-medium">{(selectedItem as PaymentTransaction).notes || 'N/A'}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground">Owner ID</p>
+                    <p className="font-medium">{(selectedItem as PaymentTransaction).owner_id || 'N/A'}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground">Guest ID</p>
+                    <p className="font-medium">{(selectedItem as PaymentTransaction).guest_id || 'N/A'}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground">Property</p>
+                    <p className="font-medium">{(selectedItem as PaymentTransaction).property_name || 'N/A'}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground">Created At</p>
+                    <p className="font-medium">{(selectedItem as PaymentTransaction).created_at ? new Date((selectedItem as PaymentTransaction).created_at).toLocaleString() : 'N/A'}</p>
+                  </div>
+                </div>
+              )}
+
+              {detailsType === 'disbursement' && selectedItem && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <p className="text-muted-foreground">Transaction ID</p>
+                    <p className="font-medium">{(selectedItem as DisbursementRecord).transaction_id}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground">Type</p>
+                    <p className="font-medium capitalize">{(selectedItem as DisbursementRecord).type.replace('_', ' ')}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground">Amount</p>
+                    <p className="font-medium">{(selectedItem as DisbursementRecord).amount?.toFixed(2)} {(selectedItem as DisbursementRecord).currency}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground">Payment Method</p>
+                    <p className="font-medium capitalize">{(selectedItem as DisbursementRecord).payment_method.replace('_', ' ')}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground">Date</p>
+                    <p className="font-medium">{new Date((selectedItem as DisbursementRecord).date).toLocaleDateString()}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground">Status</p>
+                    <p className="font-medium">
+                      <span className={`px-2 py-1 rounded-full text-xs ${
+                        statusColors[(selectedItem as DisbursementRecord).status as keyof typeof statusColors] || "bg-gray-100 text-gray-800"
+                      }`}>
+                        {(selectedItem as DisbursementRecord).status.replace('_', ' ')}
+                      </span>
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground">Owner ID</p>
+                    <p className="font-medium">{(selectedItem as DisbursementRecord).owner_id || 'N/A'}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground">Guest ID</p>
+                    <p className="font-medium">{(selectedItem as DisbursementRecord).guest_id || 'N/A'}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground">Staff ID</p>
+                    <p className="font-medium">{(selectedItem as DisbursementRecord).staff_id || 'N/A'}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground">Supplier ID</p>
+                    <p className="font-medium">{(selectedItem as DisbursementRecord).supplier_id || 'N/A'}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground">Property</p>
+                    <p className="font-medium">{(selectedItem as DisbursementRecord).property_name || 'N/A'}</p>
+                  </div>
+                  <div className="md:col-span-2">
+                    <p className="text-muted-foreground">Notes</p>
+                    <p className="font-medium">{(selectedItem as DisbursementRecord).notes || 'N/A'}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground">Created At</p>
+                    <p className="font-medium">{(selectedItem as DisbursementRecord).created_at ? new Date((selectedItem as DisbursementRecord).created_at).toLocaleString() : 'N/A'}</p>
+                  </div>
+                </div>
+              )}
+
+              {detailsType === 'balance' && selectedItem && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <p className="text-muted-foreground">Owner ID</p>
+                    <p className="font-medium">{(selectedItem as OwnerBalance).owner_id}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground">Property</p>
+                    <p className="font-medium">{(selectedItem as OwnerBalance).property_name || 'All Properties'}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground">Current Balance</p>
+                    <p className="font-medium text-lg">{(selectedItem as OwnerBalance).current_balance?.toFixed(2)} {(selectedItem as OwnerBalance).currency}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground">Currency</p>
+                    <p className="font-medium">{(selectedItem as OwnerBalance).currency}</p>
+                  </div>
+                  <div className="md:col-span-2">
+                    <p className="text-muted-foreground">Last Updated</p>
+                    <p className="font-medium">{new Date((selectedItem as OwnerBalance).last_updated).toLocaleString()}</p>
+                  </div>
+                  <div className="md:col-span-2">
+                    <p className="text-muted-foreground">Notes</p>
+                    <p className="font-medium">{(selectedItem as OwnerBalance).notes || 'N/A'}</p>
+                  </div>
+                  <div className="md:col-span-2">
+                    <p className="text-muted-foreground">Created At</p>
+                    <p className="font-medium">{(selectedItem as OwnerBalance).created_at ? new Date((selectedItem as OwnerBalance).created_at).toLocaleString() : 'N/A'}</p>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="flex justify-end p-6 border-t">
+              <Button onClick={() => setShowDetailsModal(false)}>Close</Button>
             </div>
           </div>
         </div>
