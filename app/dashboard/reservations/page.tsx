@@ -244,25 +244,43 @@ export default function ReservationsPage() {
       payment_status: formData.get('payment_status') as string,
     };
 
+    // Validate dates
+    if (new Date(reservationData.check_out_date) <= new Date(reservationData.check_in_date)) {
+      alert('Check-out date must be after check-in date.');
+      return;
+    }
+
     try {
       if (editingReservation) {
         // Update existing reservation
-        const { error } = await supabase
+        const { error, status } = await supabase
           .from('reservations')
           .update(reservationData)
           .eq('id', editingReservation.id);
 
-        if (error) throw error;
+        if (error) {
+          console.error('Error updating reservation:', error);
+          // More specific error message
+          alert(`Error updating reservation: ${error.message || 'Please try again.'}`);
+          return;
+        }
 
+        console.log('Reservation updated successfully!');
         alert('Reservation updated successfully!');
       } else {
         // Create new reservation
-        const { error } = await supabase
+        const { error, status } = await supabase
           .from('reservations')
           .insert(reservationData);
 
-        if (error) throw error;
+        if (error) {
+          console.error('Error creating reservation:', error);
+          // More specific error message
+          alert(`Error creating reservation: ${error.message || 'Please try again.'}`);
+          return;
+        }
 
+        console.log('Reservation created successfully!');
         alert('Reservation created successfully!');
       }
 
@@ -270,9 +288,9 @@ export default function ReservationsPage() {
       setShowCreateForm(false);
       setEditingReservation(null);
       checkAuthenticationAndFetchReservations();
-    } catch (error) {
-      console.error('Error saving reservation:', error);
-      alert('Error saving reservation. Please try again.');
+    } catch (error: any) {
+      console.error('Unexpected error saving reservation:', error);
+      alert(`Unexpected error saving reservation: ${error.message || 'Please try again.'}`);
     }
   }
 

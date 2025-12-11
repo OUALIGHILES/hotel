@@ -68,7 +68,7 @@ export default function ListingsPage() {
       <header className="sticky top-0 z-50 bg-background border-b">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2">
-            <div className="text-2xl font-bold text-red-500">Airbnb</div>
+            <div className="text-2xl font-bold text-red-500">Wellhost</div>
           </Link>
           <div className="flex items-center gap-4">
             <Button variant="outline" onClick={() => router.back()} className="gap-2">

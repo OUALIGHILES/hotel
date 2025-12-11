@@ -1,4 +1,4 @@
-# Complete Airbnb PMS Platform Setup Guide
+# Complete Wellhost PMS Platform Setup Guide
 
 ## Overview
 This is a complete Property Management System (PMS) built with Next.js, Supabase, and Moyasser payment integration. Users can browse properties, purchase premium plans, and manage their properties through an advanced dashboard.

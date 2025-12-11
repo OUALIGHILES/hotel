@@ -28,6 +28,7 @@ import {
   LogOut,
   User,
   Home,
+  Bell,
 } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
 import { useRouter } from "next/navigation"
@@ -35,6 +36,7 @@ import { useLanguage } from "@/lib/language-context";
 import LanguageSelector from "@/components/ui/language-selector";
 import { useTheme } from "@/lib/theme-context";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
+import NotificationDropdown from "@/components/notifications/notification-dropdown";
 
 interface PMSLayoutProps {
   children: React.ReactNode
@@ -44,10 +46,43 @@ export function PMSLayout({ children }: PMSLayoutProps) {
   const [isOpen, setIsOpen] = useState(false)
   const [user, setUser] = useState<any>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const [unreadMessageCount, setUnreadMessageCount] = useState(0)
   const pathname = usePathname()
   const router = useRouter()
   const supabase = createClient()
   const { t } = useLanguage(); // Get the translation function
+
+  // Fetch unread messages count
+  useEffect(() => {
+    if (!user?.id) {
+      // Reset count if no user
+      setUnreadMessageCount(0);
+      return;
+    }
+
+    const fetchUnreadMessageCount = async () => {
+      try {
+        // Count unread messages for the user - messages are sent directly to the user
+        const { count, error } = await supabase
+          .from("messages")
+          .select("id", { count: "exact" })
+          .eq("recipient_id", user.id)
+          .eq("is_read", false);
+
+        if (error) {
+          console.error("Error fetching unread messages count:", error);
+          setUnreadMessageCount(0);
+        } else {
+          setUnreadMessageCount(count || 0);
+        }
+      } catch (error) {
+        console.error("Error in fetchUnreadMessageCount:", error);
+        setUnreadMessageCount(0);
+      }
+    };
+
+    fetchUnreadMessageCount();
+  }, [user, supabase]);
 
   // Navigation items must be defined inside the component to access the t function
   const navItems = [
@@ -67,6 +102,14 @@ export function PMSLayout({ children }: PMSLayoutProps) {
     { label: t('paymentLinks'), href: "/dashboard/payment-links", icon: Link2 },
     { label: t('settings'), href: "/dashboard/settings", icon: Settings },
   ]
+
+  // Generate nav items that need badges separately
+  const messagesNavItem = user?.is_premium ? {
+    label: t('messages'),
+    href: "/dashboard/messages",
+    icon: MessageSquare,
+    badge: unreadMessageCount > 0 ? unreadMessageCount : null
+  } : null;
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -123,6 +166,11 @@ export function PMSLayout({ children }: PMSLayoutProps) {
           {/* Navigation */}
           <nav className="flex-1 overflow-y-auto p-4 space-y-2">
             {navItems.map((item) => {
+              // Skip the messages item as we'll render it separately if needed
+              if (item.label === t('messages')) {
+                return null;
+              }
+
               const Icon = item.icon
               const isActive = pathname === item.href
               return (
@@ -140,6 +188,29 @@ export function PMSLayout({ children }: PMSLayoutProps) {
                 </Link>
               )
             })}
+
+            {/* Render Messages item separately with badge if needed */}
+            {messagesNavItem && (
+              <Link
+                key={messagesNavItem.href}
+                href={messagesNavItem.href}
+                className={cn(
+                  "flex items-center gap-3 px-4 py-2 rounded-lg transition-colors",
+                  pathname === messagesNavItem.href ? "bg-blue-600 text-white" : "text-slate-300 hover:bg-slate-800",
+                )}
+                onClick={() => setIsOpen(false)}
+              >
+                <div className="relative">
+                  <MessageSquare className="w-5 h-5" />
+                  {messagesNavItem.badge && (
+                    <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                      {messagesNavItem.badge}
+                    </span>
+                  )}
+                </div>
+                <span className="text-sm font-medium">{messagesNavItem.label}</span>
+              </Link>
+            )}
           </nav>
 
           {/* Logout */}
@@ -167,6 +238,7 @@ export function PMSLayout({ children }: PMSLayoutProps) {
             <Link href="/" className="p-2 rounded-full hover:bg-accent">
               <Home className="w-5 h-5 text-foreground" />
             </Link>
+            <NotificationDropdown />
             {user && (
               <div className="flex items-center space-x-2">
                 <div className="w-8 h-8 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center">

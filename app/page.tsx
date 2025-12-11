@@ -5,7 +5,7 @@ import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
-import { Heart, MapPin, Star, LogOut, User } from "lucide-react"
+import { Heart, MapPin, Star, LogOut, User, MessageSquare } from "lucide-react"
 import Image from "next/image"
 import { useLanguage } from "@/lib/language-context";
 import LanguageSelector from "@/components/ui/language-selector";
@@ -38,6 +38,7 @@ export default function HomePage() {
   const [user, setUser] = useState<any>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [citiesLoading, setCitiesLoading] = useState(true)
+  const [unreadMessageCount, setUnreadMessageCount] = useState(0)
   const router = useRouter()
 
   useEffect(() => {
@@ -49,6 +50,25 @@ export default function HomePage() {
           const result = await response.json();
           if (result.user) {
             setUser(result.user);
+
+            // Also fetch unread message count for the user
+            try {
+              const supabase = (await import("@/lib/supabase/client")).createClient();
+
+              const { count, error } = await supabase
+                .from("messages")
+                .select("id", { count: "exact" })
+                .eq("recipient_id", result.user.id)
+                .eq("is_read", false);
+
+              if (error) {
+                console.error("Error fetching unread messages:", error);
+              } else {
+                setUnreadMessageCount(count || 0);
+              }
+            } catch (msgError) {
+              console.error("Error in fetching message count:", msgError);
+            }
           }
         }
 
@@ -106,14 +126,14 @@ export default function HomePage() {
       <header className="sticky top-0 z-50 bg-background border-b">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2">
-            <div className="text-2xl font-bold text-red-500">Airbnb</div>
+            <div className="text-2xl font-bold text-red-500">Wellhost</div>
           </Link>
 
           <div className="hidden md:flex items-center gap-8">
             <button className="text-sm font-medium hover:text-gray-600">{t('stays')}</button>
             <button className="text-sm font-medium hover:text-gray-600">{t('experiences')}</button>
             <button className="text-sm font-medium hover:text-gray-600">{t('onlineExperiences')}</button>
-            {user && (
+            {user?.is_premium && (
               <Link href="/messages" className="text-sm font-medium hover:text-gray-600">
                 {t('messages')}
               </Link>
@@ -151,6 +171,18 @@ export default function HomePage() {
                   )}
                   <span className="hidden md:inline">{user.full_name || user.email.split('@')[0]}</span>
                 </Button>
+
+                {/* Messages button with notification count - only for premium users */}
+                {user?.is_premium && (
+                  <Link href="/dashboard/messages" className="relative p-2 rounded-full hover:bg-accent">
+                    <MessageSquare className="w-5 h-5 text-muted-foreground" />
+                    {unreadMessageCount > 0 && (
+                      <span className="absolute top-0 right-0 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center transform translate-x-1 -translate-y-1">
+                        {unreadMessageCount}
+                      </span>
+                    )}
+                  </Link>
+                )}
 
                 {/* Dashboard button with premium indicator */}
                 {user.is_premium ? (
