@@ -239,9 +239,9 @@ export default function HomePage() {
                     className="object-cover group-hover:scale-110 transition-transform duration-300"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex flex-col justify-end p-4">
-                    <h3 className="text-2xl font-bold text-primary-foreground mb-1">{city.name}</h3>
-                    <p className="text-primary-foreground/90 text-sm mb-2">{city.description}</p>
-                    <p className="text-primary-foreground/70 text-xs">{city.propertiesCount} {t('properties')}</p>
+                    <h3 className="text-2xl font-bold text-white mb-1">{city.name}</h3>
+                    <p className="text-white/90 text-sm mb-2">{city.description}</p>
+                    <p className="text-white/70 text-xs">{city.propertiesCount} {t('properties')}</p>
                   </div>
                 </div>
               </Card>

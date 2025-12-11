@@ -298,14 +298,14 @@ export default function ReservationsPage() {
   if (!isAuthenticated) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-6">
-        <Lock className="w-12 h-12 text-amber-500" />
-        <h2 className="text-2xl font-bold text-center">Access Denied</h2>
-        <p className="text-gray-600 text-center max-w-md">
+        <Lock className="w-12 h-12 text-foreground" />
+        <h2 className="text-2xl font-bold text-center text-foreground">Access Denied</h2>
+        <p className="text-muted-foreground text-center max-w-md">
           You are not authenticated. Please log in to access your reservations.
         </p>
         <Button
           onClick={() => router.push("/auth/login")}
-          className="bg-amber-500 hover:bg-amber-600"
+          variant="default"
         >
           Go to Login
         </Button>
@@ -324,13 +324,13 @@ export default function ReservationsPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold">Reservations</h1>
+        <h1 className="text-3xl font-bold text-foreground">Reservations</h1>
         <div className="flex gap-2">
-          <Button variant="outline" className="gap-2 bg-transparent">
+          <Button variant="outline" className="gap-2">
             <Filter className="w-4 h-4" />
             Filter
           </Button>
-          <Button 
+          <Button
             className="gap-2"
             onClick={() => {
               setEditingReservation(null);
@@ -344,9 +344,14 @@ export default function ReservationsPage() {
       </div>
 
       {isLoading ? (
-        <p>Loading reservations...</p>
+        <Card className="flex justify-center items-center h-64 border rounded-xl shadow-lg">
+          <div className="flex flex-col items-center gap-2">
+            <div className="w-8 h-8 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
+            <span className="text-foreground">Loading reservations...</span>
+          </div>
+        </Card>
       ) : reservations.length === 0 ? (
-        <Card className="text-center py-12">
+        <Card className="text-center py-12 border rounded-xl shadow-lg">
           <p className="text-muted-foreground">No reservations yet</p>
         </Card>
       ) : (
