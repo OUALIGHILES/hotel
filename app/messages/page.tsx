@@ -79,8 +79,8 @@ export default function MessagesPage() {
   if (isAuthenticated === null) {
     return (
       <div className="flex justify-center items-center h-64">
-        <Loader2 className="w-8 h-8 animate-spin" />
-        <span className="ml-2">Checking authentication...</span>
+        <Loader2 className="w-8 h-8 animate-spin text-foreground" />
+        <span className="ml-2 text-foreground">Checking authentication...</span>
       </div>
     );
   }
@@ -89,8 +89,8 @@ export default function MessagesPage() {
   if (isAuthenticated === false) {
     return (
       <div className="flex justify-center items-center h-64">
-        <Loader2 className="w-8 h-8 animate-spin" />
-        <span className="ml-2">Redirecting to login...</span>
+        <Loader2 className="w-8 h-8 animate-spin text-foreground" />
+        <span className="ml-2 text-foreground">Redirecting to login...</span>
       </div>
     );
   }
@@ -369,20 +369,20 @@ function AuthenticatedMessagesPage({
 
       {isLoading ? (
         <div className="flex justify-center items-center h-64">
-          <p>Loading messages...</p>
+          <p className="text-foreground">Loading messages...</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Threads List */}
-          <Card className="lg:col-span-1">
+          <Card className="lg:col-span-1 border rounded-xl shadow-lg">
             <CardHeader>
-              <CardTitle>Conversations</CardTitle>
+              <CardTitle className="text-xl font-semibold">Conversations</CardTitle>
               <div className="relative mt-4">
                 <Search className="absolute left-3 top-3 w-4 h-4 text-muted-foreground" />
                 <input
                   type="text"
                   placeholder="Search conversations..."
-                  className="w-full px-3 py-2 pl-10 border rounded-lg text-sm"
+                  className="w-full px-4 py-2.5 pl-10 border rounded-lg text-sm bg-muted focus:ring-2 focus:ring-primary focus:border-transparent"
                 />
               </div>
             </CardHeader>
@@ -391,16 +391,16 @@ function AuthenticatedMessagesPage({
                 <div
                   key={thread.id}
                   onClick={() => setSelectedThread(thread.id)}
-                  className={`p-3 rounded-lg cursor-pointer border-l-4 transition-colors ${
+                  className={`p-4 rounded-lg cursor-pointer border-l-4 transition-colors ${
                     selectedThread === thread.id
-                      ? "bg-blue-50 border-blue-500"
-                      : "bg-slate-50 border-transparent hover:bg-slate-100"
+                      ? "bg-primary/10 border-primary"
+                      : "bg-card border-transparent hover:bg-muted"
                   }`}
                 >
                   <div className="flex justify-between items-start">
-                    <p className="font-semibold text-sm">{thread.sender_name}</p>
+                    <p className="font-semibold text-sm text-foreground">{thread.sender_name}</p>
                     {thread.unread_count > 0 && (
-                      <span className="text-xs bg-red-500 text-white px-2 py-1 rounded-full">
+                      <span className="text-xs bg-destructive text-destructive-foreground px-2 py-1 rounded-full">
                         {thread.unread_count}
                       </span>
                     )}
@@ -419,18 +419,18 @@ function AuthenticatedMessagesPage({
           </Card>
 
           {/* Message View */}
-          <Card className="lg:col-span-2">
+          <Card className="lg:col-span-2 border rounded-xl shadow-lg">
             {selectedThread ? (
               <>
                 <CardHeader className="border-b">
-                  <CardTitle>
+                  <CardTitle className="text-xl font-semibold">
                     {threads.find(t => t.id === selectedThread)?.sender_name || 'Conversation'}
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="p-6 space-y-4 h-96 overflow-y-auto">
                   {isLoadingMessages ? (
                     <div className="flex justify-center items-center h-full">
-                      <p>Loading messages...</p>
+                      <p className="text-foreground">Loading messages...</p>
                     </div>
                   ) : (
                     <div className="space-y-4">
@@ -443,14 +443,14 @@ function AuthenticatedMessagesPage({
                               className={`flex ${isCurrentUser ? 'justify-end' : 'justify-start'}`}
                             >
                               <div
-                                className={`p-3 rounded-lg max-w-xs ${
+                                className={`p-4 rounded-xl max-w-xs ${
                                   isCurrentUser
-                                    ? 'bg-blue-500 text-white'
-                                    : 'bg-slate-100 text-gray-800'
+                                    ? 'bg-primary text-primary-foreground'
+                                    : 'bg-muted text-foreground'
                                 }`}
                               >
                                 <p className="text-sm">{msg.body}</p>
-                                <p className="text-xs opacity-70 mt-1">
+                                <p className="text-xs opacity-80 mt-1">
                                   {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                 </p>
                               </div>
@@ -469,7 +469,7 @@ function AuthenticatedMessagesPage({
                     placeholder="Type a message..."
                     value={messageInput}
                     onChange={(e) => setMessageInput(e.target.value)}
-                    className="flex-1 px-3 py-2 border rounded-lg text-sm"
+                    className="flex-1 px-4 py-2.5 border rounded-lg text-sm bg-muted focus:ring-2 focus:ring-primary focus:border-transparent"
                     onKeyPress={(e) => {
                       if (e.key === 'Enter') {
                         sendMessage()
