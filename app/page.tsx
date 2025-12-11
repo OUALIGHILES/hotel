@@ -133,11 +133,9 @@ export default function HomePage() {
             <button className="text-sm font-medium text-foreground hover:text-muted-foreground">{t('stays')}</button>
             <button className="text-sm font-medium text-foreground hover:text-muted-foreground">{t('experiences')}</button>
             <button className="text-sm font-medium text-foreground hover:text-muted-foreground">{t('onlineExperiences')}</button>
-            {user?.is_premium && (
-              <Link href="/messages" className="text-sm font-medium text-foreground hover:text-muted-foreground">
-                {t('messages')}
-              </Link>
-            )}
+            <Link href="/messages" className="text-sm font-medium text-foreground hover:text-muted-foreground">
+              {t('messages')}
+            </Link>
           </div>
 
           <div className="flex items-center gap-4">
@@ -172,17 +170,15 @@ export default function HomePage() {
                   <span className="hidden md:inline">{user.full_name || user.email.split('@')[0]}</span>
                 </Button>
 
-                {/* Messages button with notification count - only for premium users */}
-                {user?.is_premium && (
-                  <Link href="/dashboard/messages" className="relative p-2 rounded-full hover:bg-accent">
-                    <MessageSquare className="w-5 h-5 text-muted-foreground" />
-                    {unreadMessageCount > 0 && (
-                      <span className="absolute top-0 right-0 bg-destructive text-destructive-foreground text-xs rounded-full h-5 w-5 flex items-center justify-center transform translate-x-1 -translate-y-1">
-                        {unreadMessageCount}
-                      </span>
-                    )}
-                  </Link>
-                )}
+                {/* Messages button with notification count */}
+                <Link href="/messages" className="relative p-2 rounded-full hover:bg-accent">
+                  <MessageSquare className="w-5 h-5 text-muted-foreground" />
+                  {unreadMessageCount > 0 && (
+                    <span className="absolute top-0 right-0 bg-destructive text-destructive-foreground text-xs rounded-full h-5 w-5 flex items-center justify-center transform translate-x-1 -translate-y-1">
+                      {unreadMessageCount}
+                    </span>
+                  )}
+                </Link>
 
                 {/* Dashboard button with premium indicator */}
                 {user.is_premium ? (
