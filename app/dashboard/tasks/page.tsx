@@ -455,9 +455,6 @@ export default function TasksPage() {
 
   // Function to handle printing tasks
   const handlePrint = () => {
-    const printContent = componentRef.current;
-    if (!printContent) return;
-
     // Create a new window for printing
     const printWindow = window.open('', '_blank');
     if (!printWindow) return;
