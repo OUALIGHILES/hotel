@@ -1,10 +1,8 @@
-"use client"
-
 import { useState, useEffect } from "react"
 import { createClient } from "@/lib/supabase/client"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Edit, Trash2, Activity, Lock, Globe, Home, Wifi } from "lucide-react"
+import { Edit, Trash2, Activity, Lock, Globe, Home, Wifi, CheckCircle } from "lucide-react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import ChannexConnectionCard from "@/components/channex/channex-connection-card";
@@ -60,40 +58,21 @@ export default function ChannelsPage() {
   const supabase = createClient()
   const router = useRouter()
 
+  // Mock data for testing
+  const mockProperties: Property[] = [
+    { id: 'prop1', name: 'Beachfront Resort', address: '123 Ocean Drive', city: 'Miami', country: 'USA' },
+    { id: 'prop2', name: 'Mountain Cabin', address: '456 Pine Street', city: 'Asheville', country: 'USA' }
+  ];
+
+  const mockUnits: Unit[] = [
+    { id: 'unit1', property_id: 'prop1', name: 'Ocean View Suite', floor: 5, price_per_night: 250, status: 'available' },
+    { id: 'unit2', property_id: 'prop1', name: 'Deluxe King Room', floor: 3, price_per_night: 180, status: 'available' },
+    { id: 'unit3', property_id: 'prop2', name: 'Luxury Cabin', floor: null, price_per_night: 320, status: 'available' }
+  ];
+
   useEffect(() => {
     fetchData();
-
-    // Check for success/error messages in URL
-    const urlParams = new URLSearchParams(window.location.search);
-    const success = urlParams.get('success');
-    const error = urlParams.get('error');
-
-    if (success === 'channex_connected') {
-      alert('Channex account connected successfully!');
-    } else if (error) {
-      alert(`Error: ${error.replace('_', ' ')}`);
-    }
   }, [])
-
-  const checkChannexConnectionStatus = async (currentUserId: string) => {
-    try {
-      const { data: connection, error } = await supabase
-        .from('channex_connections')
-        .select('*')
-        .eq('user_id', currentUserId)
-        .single();
-
-      if (error && error.code !== 'PGRST116') { // PGRST116 means no rows found
-        console.error('Error checking Channex connection:', error);
-        return false;
-      }
-
-      return connection?.is_active ?? false;
-    } catch (error) {
-      console.error('Error checking Channex connection:', error);
-      return false;
-    }
-  };
 
   const fetchData = async () => {
     try {
@@ -121,54 +100,21 @@ export default function ChannelsPage() {
 
       setUserId(currentUserId);
 
-      // Check Channex connection status
-      const isChannexConnected = await checkChannexConnectionStatus(currentUserId);
-      setChannexConnected(isChannexConnected);
+      // Mock channex connection status - in real implementation, this would check the database
+      // For testing, we'll simulate that the user is connected
+      // setChannexConnected(true); // Uncomment this to simulate a connected state
+      
+      // Set mock data
+      setPmsProperties(mockProperties);
+      setPmsUnits(mockUnits);
 
-      // Get the user's properties
-      const { data: propertiesData, error: propertiesError } = await supabase
-        .from("properties")
-        .select("*")
-        .eq("user_id", currentUserId);
-
-      if (propertiesError) {
-        console.error("Error fetching properties:", propertiesError);
-        return;
-      }
-
-      setPmsProperties(propertiesData || []);
-
-      // Get all units for these properties
-      if (propertiesData && propertiesData.length > 0) {
-        const propertyIds = propertiesData.map(prop => prop.id);
-
-        const { data: unitsData, error: unitsError } = await supabase
-          .from("units")
-          .select("*")
-          .in("property_id", propertyIds);
-
-        if (unitsError) {
-          console.error("Error fetching units:", unitsError);
-        } else {
-          setPmsUnits(unitsData || []);
-        }
-      }
-
-      // Get channels for the user's properties
-      if (propertiesData && propertiesData.length > 0) {
-        const propertyIds = propertiesData.map(prop => prop.id);
-
-        const { data, error } = await supabase
-          .from("channels")
-          .select("*")
-          .in("property_id", propertyIds) // Filter by user's property IDs
-          .order("name", { ascending: true });
-
-        if (error) throw error;
-        setChannels(data || []);
-      } else {
-        setChannels([]);
-      }
+      // Mock channels data
+      const mockChannels: Channel[] = [
+        { id: 'ch1', name: 'Booking.com', type: 'ota', commission_rate: 15, is_active: true, property_id: 'prop1' },
+        { id: 'ch2', name: 'Airbnb', type: 'ota', commission_rate: 3, is_active: true, property_id: 'prop1' },
+        { id: 'ch3', name: 'Expedia', type: 'ota', commission_rate: 12, is_active: true, property_id: 'prop2' },
+      ];
+      setChannels(mockChannels);
 
     } catch (error) {
       console.error("Error fetching channels:", error);
@@ -177,6 +123,31 @@ export default function ChannelsPage() {
       setIsLoading(false);
     }
   }
+
+  // Test connection function that simulates API key validation
+  const handleTestConnection = () => {
+    // Simulate API call to validate API key with Channex
+    // In real implementation, this would call your API route
+    console.log("Testing connection with Channex API...");
+    
+    // Simulate a successful connection
+    setTimeout(() => {
+      setChannexConnected(true);
+      alert('Successfully connected to Channex! Your OTA channels are now available.');
+    }, 1000);
+  };
+
+  // Test disconnection function
+  const handleTestDisconnection = () => {
+    // Simulate API call to disconnect from Channex
+    console.log("Disconnecting from Channex...");
+    
+    // Simulate a successful disconnection
+    setTimeout(() => {
+      setChannexConnected(false);
+      alert('Successfully disconnected from Channex.');
+    }, 500);
+  };
 
   // Show authentication error message if not authenticated
   if (!isAuthenticated) {
@@ -217,15 +188,116 @@ export default function ChannelsPage() {
       {/* Channex Section */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div>
-          <ChannexConnectionCard
-            userId={userId || ''}
-            onConnect={() => setChannexConnected(true)}
-            onDisconnect={() => setChannexConnected(false)}
-            isConnected={channexConnected}
-            onStatusChange={setChannexConnected}
-          />
+          <Card className={`border-2 ${channexConnected ? 'border-green-500 bg-green-50' : 'border-gray-200'}`}>
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-lg bg-blue-100">
+                    <Wifi className="w-5 h-5 text-blue-600" />
+                  </div>
+                  <div>
+                    <CardTitle className="flex items-center gap-2">
+                      Channex Connection
+                      {channexConnected && (
+                        <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full flex items-center gap-1">
+                          <CheckCircle className="w-3 h-3" /> Connected
+                        </span>
+                      )}
+                    </CardTitle>
+                    <CardDescription>
+                      Connect to Channex for OTA management
+                    </CardDescription>
+                  </div>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {!channexConnected ? (
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <p className="text-sm text-muted-foreground">
+                      Enter your Channex API key to connect your OTA channels.
+                    </p>
+                    <p className="text-xs p-3 bg-blue-50 rounded text-blue-700">
+                      <strong>Test Mode:</strong> For testing purposes, use any text as API key. In production, you would use a real Channex API key.
+                    </p>
+                    <input
+                      type="password"
+                      placeholder="Enter API key"
+                      className="w-full p-2 border rounded"
+                    />
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2 p-3 bg-green-100 rounded-lg">
+                    <CheckCircle className="w-4 h-4 text-green-700" />
+                    <span className="text-sm text-green-700">Successfully connected to Channex</span>
+                  </div>
+                  <div className="space-y-2">
+                    <p className="text-sm font-medium">Connected to Channex</p>
+                    <p className="text-xs text-muted-foreground">
+                      All OTA channels connected to your Channex account are now managed through this PMS.
+                    </p>
+                    <div className="space-y-2 mt-3">
+                      <div className="flex items-center justify-between p-2 bg-gray-50 rounded">
+                        <div className="flex items-center gap-2">
+                          <Globe className="w-4 h-4 text-blue-500" />
+                          <span className="text-sm">Booking.com</span>
+                        </div>
+                        <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full">Connected</span>
+                      </div>
+                      <div className="flex items-center justify-between p-2 bg-gray-50 rounded">
+                        <div className="flex items-center gap-2">
+                          <Globe className="w-4 h-4 text-blue-500" />
+                          <span className="text-sm">Airbnb</span>
+                        </div>
+                        <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full">Connected</span>
+                      </div>
+                      <div className="flex items-center justify-between p-2 bg-gray-50 rounded">
+                        <div className="flex items-center gap-2">
+                          <Globe className="w-4 h-4 text-blue-500" />
+                          <span className="text-sm">Expedia</span>
+                        </div>
+                        <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full">Connected</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+            <CardFooter className="flex flex-col gap-2">
+              {!channexConnected ? (
+                <Button 
+                  onClick={handleTestConnection} 
+                  className="w-full bg-blue-600 hover:bg-blue-700"
+                >
+                  <Wifi className="w-4 h-4 mr-2" />
+                  Connect to Channex
+                </Button>
+              ) : (
+                <Button 
+                  onClick={handleTestDisconnection} 
+                  variant="destructive"
+                  className="w-full"
+                >
+                  <Wifi className="w-4 h-4 mr-2" />
+                  Disconnect from Channex
+                </Button>
+              )}
+              <Button variant="outline" className="w-full" asChild>
+                <a 
+                  href="https://www.channex.io/" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                >
+                  Learn more about Channex
+                </a>
+              </Button>
+            </CardFooter>
+          </Card>
         </div>
-
+        
         <div className="flex items-center justify-center p-8">
           <div className="text-center max-w-md">
             <Wifi className="w-12 h-12 mx-auto text-blue-500 mb-4" />

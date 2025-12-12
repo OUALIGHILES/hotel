@@ -6,10 +6,14 @@ import { ChevronLeft, ChevronRight, Loader2 } from "lucide-react"
 import { useState, useEffect } from "react"
 import { createClient } from "@/lib/supabase/client"
 import { useRouter } from "next/navigation"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 
 interface Reservation {
   id: string
   unit_id: string
+  unit_name: string
+  property_id: string
+  property_name: string
   check_in_date: string
   check_out_date: string
   status: string
@@ -42,6 +46,19 @@ export default function OccupancyPage() {
     }
 
     return 'available' // Default to available if no reservation exists
+  }
+
+  // Get detailed reservation information for the day
+  const getDayReservations = (date: Date) => {
+    const dateStr = date.toISOString().split('T')[0] // Format as YYYY-MM-DD
+
+    return reservations.filter(reservation => {
+      const checkIn = new Date(reservation.check_in_date)
+      const checkOut = new Date(reservation.check_out_date)
+
+      // Include the check-out date as well (guest checkout day)
+      return date >= checkIn && date <= checkOut && reservation.status !== 'checked_out'
+    })
   }
 
   // Get the CSS class for the day based on its status
@@ -90,50 +107,29 @@ export default function OccupancyPage() {
           return;
         }
 
-        // Get the user's properties
-        const { data: propertiesData, error: propertiesError } = await supabase
-          .from("properties")
-          .select("id")
-          .eq("user_id", userId);
-
-        if (propertiesError) {
-          console.error("Error fetching properties:", propertiesError);
-          return;
-        }
-
-        if (!propertiesData || propertiesData.length === 0) {
-          setReservations([]);
-          return;
-        }
-
-        const propertyIds = propertiesData.map(prop => prop.id);
-
-        // Get units for the user's properties
-        const { data: unitsData, error: unitsError } = await supabase
-          .from("units")
-          .select("id")
-          .in("property_id", propertyIds);
-
-        if (unitsError) {
-          console.error("Error fetching units:", unitsError);
-          return;
-        }
-
-        if (!unitsData || unitsData.length === 0) {
-          setReservations([]);
-          return;
-        }
-
-        const unitIds = unitsData.map(unit => unit.id);
-
-        // Get reservations for the user's units during the current month
+        // Get reservations with associated unit and property information
         const firstDayOfMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1)
         const lastDayOfMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 0)
 
         const { data, error } = await supabase
           .from("reservations")
-          .select("id, unit_id, check_in_date, check_out_date, status")
-          .in("unit_id", unitIds)
+          .select(`
+            id,
+            unit_id,
+            check_in_date,
+            check_out_date,
+            status,
+            units!inner (
+              id,
+              name,
+              property_id,
+              properties!inner (
+                id,
+                name
+              )
+            )
+          `)
+          .eq("units.properties.user_id", userId)
           .or(`and(check_in_date.lte.${lastDayOfMonth.toISOString().split('T')[0]},check_out_date.gte.${firstDayOfMonth.toISOString().split('T')[0]})`)
           .order("check_in_date", { ascending: true })
 
@@ -142,7 +138,19 @@ export default function OccupancyPage() {
           return;
         }
 
-        setReservations(data || [])
+        // Transform the data to match our interface
+        const transformedReservations: Reservation[] = (data || []).map(item => ({
+          id: item.id,
+          unit_id: item.unit_id,
+          unit_name: item.units.name,
+          property_id: item.units.property_id,
+          property_name: item.units.properties.name,
+          check_in_date: item.check_in_date,
+          check_out_date: item.check_out_date,
+          status: item.status
+        }));
+
+        setReservations(transformedReservations)
       } catch (error) {
         console.error("Error in fetchData:", error)
       } finally {
@@ -231,13 +239,46 @@ export default function OccupancyPage() {
               }
 
               const date = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), day)
+              const dayReservations = getDayReservations(date);
+              const status = getDayStatus(date);
+
+              // Only show tooltip for booked/reserved/occupied days
+              const hasReservation = dayReservations.length > 0;
+
               return (
-                <div
-                  key={idx}
-                  className={getDayClass(date)}
-                >
-                  {day}
-                </div>
+                <TooltipProvider key={idx}>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <div
+                        className={getDayClass(date)}
+                      >
+                        {day}
+                      </div>
+                    </TooltipTrigger>
+                    {hasReservation && (
+                      <TooltipContent>
+                        <div className="p-2 max-w-xs">
+                          <p className="font-semibold text-sm mb-1">
+                            {date.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}
+                          </p>
+                          <p className="text-xs mb-2">
+                            <span className="font-medium">
+                              {status === 'booked' ? 'Booked:' :
+                               status === 'occupied' ? 'Occupied:' :
+                               status === 'reserved' ? 'Reserved:' : 'Status:'}
+                            </span> {dayReservations.length} unit{dayReservations.length !== 1 ? 's' : ''}
+                          </p>
+                          {dayReservations.map((reservation, index) => (
+                            <div key={reservation.id} className="text-xs mb-1 last:mb-0">
+                              <div className="font-medium">{reservation.unit_name}</div>
+                              <div className="text-muted-foreground">{reservation.property_name}</div>
+                            </div>
+                          ))}
+                        </div>
+                      </TooltipContent>
+                    )}
+                  </Tooltip>
+                </TooltipProvider>
               )
             })}
           </div>
