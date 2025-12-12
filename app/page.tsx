@@ -129,20 +129,20 @@ export default function HomePage() {
             <div className="relative w-10 h-10">
               <Image
                 src="/logo_lightmode.png"
-                alt="Wellhost Logo"
+                alt="Welhost Logo"
                 className="dark:hidden block"
                 width={40}
                 height={40}
               />
               <Image
                 src="/logo_darckmode.png"
-                alt="Wellhost Logo"
+                alt="Welhost Logo"
                 className="hidden dark:block"
                 width={40}
                 height={40}
               />
             </div>
-            <div className="text-2xl font-bold text-primary hidden sm:block">Wellhost</div>
+            <div className="text-2xl font-bold text-primary hidden sm:block">Welhost</div>
           </Link>
 
           <div className="hidden md:flex items-center gap-8">

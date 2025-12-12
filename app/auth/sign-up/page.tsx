@@ -85,14 +85,14 @@ export default function SignUpPage() {
             <div className="w-16 h-16 mx-auto">
               <Image
                 src="/logo_lightmode.png"
-                alt="Wellhost Logo"
+                alt="Welhost Logo"
                 className="dark:hidden block mx-auto"
                 width={64}
                 height={64}
               />
               <Image
                 src="/logo_darckmode.png"
-                alt="Wellhost Logo"
+                alt="Welhost Logo"
                 className="hidden dark:block mx-auto"
                 width={64}
                 height={64}

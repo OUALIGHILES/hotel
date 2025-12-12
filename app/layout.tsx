@@ -8,9 +8,9 @@ const _geist = Geist({ subsets: ["latin"] })
 const _geistMono = Geist_Mono({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: "Wellhost",
+  title: "Welhost",
   description: "Hotel Reservation & Property Management System",
-  generator: "Wellhost PMS",
+  generator: "Welhost PMS",
   icons: {
     icon: [
       {
