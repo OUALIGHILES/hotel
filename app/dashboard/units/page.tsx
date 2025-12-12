@@ -13,6 +13,9 @@ interface Unit {
   name: string
   floor: number
   price_per_night: number
+  bedrooms: number
+  bathrooms: number
+  max_guests: number
   status: string
   main_picture_url?: string | null
   additional_pictures_urls?: string[] | null
@@ -229,6 +232,9 @@ export default function UnitsPage() {
       const name = formData.get('name') as string;
       const floor = parseInt(formData.get('floor') as string) || 0;
       const price = parseFloat(formData.get('price') as string) || 0;
+      const bedrooms = parseInt(formData.get('bedrooms') as string) || 1;
+      const bathrooms = parseFloat(formData.get('bathrooms') as string) || 1;
+      const maxGuests = parseInt(formData.get('maxGuests') as string) || 2;
       const propertyId = formData.get('propertyId') as string;
       const mainPictureFile = formData.get('mainPicture') as File | null;
       const additionalPicturesFiles = formData.getAll('additionalPictures') as File[];
@@ -344,6 +350,9 @@ export default function UnitsPage() {
           name,
           floor,
           price_per_night: price,
+          bedrooms: bedrooms,
+          bathrooms: bathrooms,
+          max_guests: maxGuests,
           status: "vacant", // Default status
           property_id: propertyId,
           main_picture_url: mainPictureUrl,
@@ -384,9 +393,9 @@ export default function UnitsPage() {
           price_per_night: price,
           currency: 'USD',
           property_type: 'Unit', // or 'Apartment', 'Hotel Room' based on your needs
-          bedrooms: 1, // Default, you might want to add this as a field
-          bathrooms: 1, // Default, you might want to add this as a field
-          guests: 2, // Default, you might want to add this as a field
+          bedrooms: bedrooms,
+          bathrooms: bathrooms,
+          guests: maxGuests,
           address: propertyDetails.address,
           city: propertyDetails.city,
           country: propertyDetails.country,
@@ -427,6 +436,9 @@ export default function UnitsPage() {
       const name = formData.get('name') as string;
       const floor = parseInt(formData.get('floor') as string) || 0;
       const price = parseFloat(formData.get('price') as string) || 0;
+      const bedrooms = parseInt(formData.get('bedrooms') as string) || 1;
+      const bathrooms = parseFloat(formData.get('bathrooms') as string) || 1;
+      const maxGuests = parseInt(formData.get('maxGuests') as string) || 2;
       const propertyId = formData.get('propertyId') as string;
       const mainPictureFile = formData.get('mainPicture') as File | null;
       const additionalPicturesFiles = formData.getAll('additionalPictures') as File[];
@@ -558,6 +570,9 @@ export default function UnitsPage() {
           name,
           floor,
           price_per_night: price,
+          bedrooms: bedrooms,
+          bathrooms: bathrooms,
+          max_guests: maxGuests,
           property_id: propertyId,
           main_picture_url: mainPictureUrl,
           additional_pictures_urls: additionalPicturesUrls.length > 0 ? additionalPicturesUrls : null
@@ -595,6 +610,9 @@ export default function UnitsPage() {
           title: listingName,
           description: `Comfortable unit in ${propertyDetails.name}. Perfect for your stay in ${propertyDetails.city}.`,
           price_per_night: price,
+          bedrooms: bedrooms,
+          bathrooms: bathrooms,
+          guests: maxGuests,
           address: propertyDetails.address,
           city: propertyDetails.city,
           country: propertyDetails.country,
@@ -1210,6 +1228,43 @@ export default function UnitsPage() {
                   />
                 </div>
 
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-foreground">Bedrooms</label>
+                  <input
+                    name="bedrooms"
+                    type="number"
+                    min="0"
+                    defaultValue={editingUnit?.bedrooms || 1}
+                    placeholder="Number of bedrooms"
+                    className="w-full px-4 py-2.5 border rounded-lg bg-muted text-foreground focus:ring-2 focus:ring-primary focus:border-transparent transition-colors"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-foreground">Bathrooms</label>
+                  <input
+                    name="bathrooms"
+                    type="number"
+                    min="0"
+                    step="0.5"
+                    defaultValue={editingUnit?.bathrooms || 1}
+                    placeholder="Number of bathrooms"
+                    className="w-full px-4 py-2.5 border rounded-lg bg-muted text-foreground focus:ring-2 focus:ring-primary focus:border-transparent transition-colors"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-foreground">Max Guests</label>
+                  <input
+                    name="maxGuests"
+                    type="number"
+                    min="1"
+                    defaultValue={editingUnit?.max_guests || 2}
+                    placeholder="Maximum number of guests"
+                    className="w-full px-4 py-2.5 border rounded-lg bg-muted text-foreground focus:ring-2 focus:ring-primary focus:border-transparent transition-colors"
+                  />
+                </div>
+
                 <div className="md:col-span-2 space-y-2">
                   <label className="text-sm font-medium text-foreground">Main Unit Picture</label>
                   <input
@@ -1293,6 +1348,12 @@ export default function UnitsPage() {
                     </CardHeader>
                     <CardContent className="space-y-4">
                       <p className="text-lg font-bold">${unit.price_per_night}/night</p>
+
+                      <div className="flex gap-4 text-sm text-muted-foreground">
+                        <span>{unit.bedrooms} {unit.bedrooms === 1 ? 'Bedroom' : 'Bedrooms'}</span>
+                        <span>{unit.bathrooms} {unit.bathrooms === 1 ? 'Bathroom' : 'Bathrooms'}</span>
+                        <span>Guests: {unit.max_guests}</span>
+                      </div>
 
                       {/* Display associated tasks */}
                       {unit.tasks && unit.tasks.length > 0 && (
