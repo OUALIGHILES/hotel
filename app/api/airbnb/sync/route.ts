@@ -1,14 +1,52 @@
 import { NextRequest } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { createClientForRoute } from '@/lib/supabase/server';
 import AirbnbApiService from '@/lib/airbnb/airbnb-api';
+
+// Helper function to get user from custom auth token
+async function getUserFromCustomAuthToken(request: NextRequest) {
+  const authCookie = request.cookies.get('auth_token')?.value;
+  if (!authCookie) {
+    return null;
+  }
+
+  try {
+    const decodedToken = Buffer.from(authCookie, 'base64').toString('utf-8');
+    const user = JSON.parse(decodedToken);
+    return user;
+  } catch (error) {
+    console.error('Error decoding custom auth token:', error);
+    return null;
+  }
+}
 
 export async function POST(request: NextRequest) {
   try {
-    const supabase = createClient();
-    
-    // Get the current user
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    if (authError || !user) {
+    const supabase = await createClientForRoute(request.cookies);
+
+    // Try to get the authenticated user from Supabase first
+    let {
+      data: { user: supabaseUser },
+      error: userError
+    } = await supabase.auth.getUser();
+
+    let user = supabaseUser;
+
+    // If Supabase auth failed, try custom auth system
+    if (!user) {
+      const customUser = await getUserFromCustomAuthToken(request);
+      if (customUser) {
+        // Create a minimal user object that matches what Supabase returns
+        user = {
+          id: customUser.id,
+          email: customUser.email,
+          user_metadata: {
+            full_name: customUser.full_name
+          }
+        };
+      }
+    }
+
+    if (!user) {
       return Response.json({ error: 'Not authenticated' }, { status: 401 });
     }
 

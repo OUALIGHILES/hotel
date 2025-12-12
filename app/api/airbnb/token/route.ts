@@ -1,16 +1,54 @@
 import { NextRequest } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { createClientForRoute } from '@/lib/supabase/server';
 import { AIRBNB_API } from '@/lib/airbnb/config';
+
+// Helper function to get user from custom auth token
+async function getUserFromCustomAuthToken(request: NextRequest) {
+  const authCookie = request.cookies.get('auth_token')?.value;
+  if (!authCookie) {
+    return null;
+  }
+
+  try {
+    const decodedToken = Buffer.from(authCookie, 'base64').toString('utf-8');
+    const user = JSON.parse(decodedToken);
+    return user;
+  } catch (error) {
+    console.error('Error decoding custom auth token:', error);
+    return null;
+  }
+}
 
 export async function POST(request: NextRequest) {
   try {
-    const supabase = createClient();
-    
+    const supabase = await createClientForRoute(request.cookies);
+
     const { userId } = await request.json();
-    
-    // Get the current user for verification (optional since userId is passed in)
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    if (authError || !user) {
+
+    // Try to get the authenticated user from Supabase first
+    let {
+      data: { user: supabaseUser },
+      error: userError
+    } = await supabase.auth.getUser();
+
+    let user = supabaseUser;
+
+    // If Supabase auth failed, try custom auth system
+    if (!user) {
+      const customUser = await getUserFromCustomAuthToken(request);
+      if (customUser) {
+        // Create a minimal user object that matches what Supabase returns
+        user = {
+          id: customUser.id,
+          email: customUser.email,
+          user_metadata: {
+            full_name: customUser.full_name
+          }
+        };
+      }
+    }
+
+    if (!user) {
       return Response.json({ error: 'Not authenticated' }, { status: 401 });
     }
     
@@ -38,7 +76,7 @@ export async function POST(request: NextRequest) {
     if (expiresAt <= now) {
       // Token expired, try to refresh
       try {
-        const newToken = await refreshToken(data.id, data.refresh_token);
+        const newToken = await refreshToken(data.id, data.refresh_token, request);
         return Response.json({ accessToken: newToken });
       } catch (refreshError) {
         console.error('Failed to refresh token:', refreshError);
@@ -54,7 +92,7 @@ export async function POST(request: NextRequest) {
 }
 
 // Separate function to refresh the token
-async function refreshToken(externalAccountId: string, refreshToken: string) {
+async function refreshToken(externalAccountId: string, refreshToken: string, request: NextRequest) {
   const response = await fetch(AIRBNB_API.TOKEN_URL, {
     method: 'POST',
     headers: {
@@ -75,7 +113,7 @@ async function refreshToken(externalAccountId: string, refreshToken: string) {
   const tokenData = await response.json();
 
   // Update the token in the database
-  const supabase = createClient();
+  const supabase = await createClientForRoute(request.cookies);
   await supabase
     .from('external_accounts')
     .update({

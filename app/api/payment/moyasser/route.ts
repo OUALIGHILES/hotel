@@ -1,10 +1,26 @@
-import { createClient } from "@/lib/supabase/server"
+import { createClientForRoute } from "@/lib/supabase/server"
 import { type NextRequest, NextResponse } from "next/server"
-import { cookies } from "next/headers"
 
 const MOYASSER_API_KEY = process.env.MOYASSER_API_KEY || ""
 const MOYASSER_PUBLISHABLE_KEY = process.env.MOYASSER_PUBLISHABLE_KEY || ""
 const MOYASSER_API_URL = "https://api.moyasar.com/v1"
+
+// Helper function to get user from custom auth token
+async function getUserFromCustomAuthToken(request: NextRequest) {
+  const authCookie = request.cookies.get('auth_token')?.value;
+  if (!authCookie) {
+    return null;
+  }
+
+  try {
+    const decodedToken = Buffer.from(authCookie, 'base64').toString('utf-8');
+    const user = JSON.parse(decodedToken);
+    return user;
+  } catch (error) {
+    console.error('Error decoding custom auth token:', error);
+    return null;
+  }
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -14,16 +30,32 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 })
     }
 
-    const cookieStore = await cookies()
-    const supabase = createClient(cookieStore)
+    const supabase = await createClientForRoute(request.cookies);
 
-    // Get current user
-    const {
-      data: { user },
-      error: userError,
-    } = await supabase.auth.getUser()
+    // Try to get the authenticated user from Supabase first
+    let {
+      data: { user: supabaseUser },
+      error: userError
+    } = await supabase.auth.getUser();
 
-    if (userError || !user) {
+    let user = supabaseUser;
+
+    // If Supabase auth failed, try custom auth system
+    if (!user) {
+      const customUser = await getUserFromCustomAuthToken(request);
+      if (customUser) {
+        // Create a minimal user object that matches what Supabase returns
+        user = {
+          id: customUser.id,
+          email: customUser.email,
+          user_metadata: {
+            full_name: customUser.full_name
+          }
+        };
+      }
+    }
+
+    if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 

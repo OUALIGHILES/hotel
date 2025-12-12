@@ -9,6 +9,8 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
+import { useLanguage } from "@/lib/language-context"
+import { createClient as createSupabaseClient } from "@/lib/supabase/client"
 
 export default function SignUpPage() {
   const [fullName, setFullName] = useState("")
@@ -18,13 +20,14 @@ export default function SignUpPage() {
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const router = useRouter()
+  const { t } = useLanguage()
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault()
     setError(null)
 
     if (password !== repeatPassword) {
-      setError("Passwords do not match")
+      setError(t("passwordsDoNotMatch"))
       return
     }
 
@@ -40,14 +43,35 @@ export default function SignUpPage() {
       const data = await response.json()
 
       if (!response.ok) {
-        setError(data.error || "Registration failed")
+        setError(data.error || t("registrationFailed"))
         return
+      }
+
+      // After registration succeeds, try to sign in with Supabase to ensure session is established
+      // This is needed for components that check Supabase auth (like smart locks)
+      try {
+        const supabase = createSupabaseClient();
+
+        // Try to sign in with email and password to establish Supabase session
+        const { error } = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
+
+        if (error) {
+          // If signInWithPassword fails, it's likely because the user was created via admin API
+          // In this case, the custom auth token should still work with our updated API routes
+          console.warn("Supabase sign-in failed (user may have been created via admin API):", error.message);
+        }
+      } catch (supabaseError) {
+        console.warn("Supabase session establishment failed:", supabaseError);
+        // Don't treat this as a registration failure, since custom auth succeeded
       }
 
       // Redirect to the success page after successful registration
       router.push("/auth/sign-up-success")
     } catch (err) {
-      setError("An error occurred. Please try again.")
+      setError(t("anErrorOccurredPleaseTryAgain"))
     } finally {
       setIsLoading(false)
     }
@@ -74,14 +98,14 @@ export default function SignUpPage() {
                 height={64}
               />
             </div>
-            <CardTitle className="text-2xl font-bold">Create an Account</CardTitle>
-            <CardDescription>Enter your details to get started</CardDescription>
+            <CardTitle className="text-2xl font-bold">{t("createAnAccount")}</CardTitle>
+            <CardDescription>{t("enterYourDetailsToGetStarted")}</CardDescription>
           </CardHeader>
 
           <CardContent>
             <form onSubmit={handleSignUp} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="fullName">Full Name</Label>
+                <Label htmlFor="fullName">{t("fullName")}</Label>
                 <Input
                   id="fullName"
                   type="text"
@@ -93,7 +117,7 @@ export default function SignUpPage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
+                <Label htmlFor="email">{t("email")}</Label>
                 <Input
                   id="email"
                   type="email"
@@ -105,7 +129,7 @@ export default function SignUpPage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="password">Password</Label>
+                <Label htmlFor="password">{t("password")}</Label>
                 <Input
                   id="password"
                   type="password"
@@ -117,7 +141,7 @@ export default function SignUpPage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="repeatPassword">Confirm Password</Label>
+                <Label htmlFor="repeatPassword">{t("confirmPassword")}</Label>
                 <Input
                   id="repeatPassword"
                   type="password"
@@ -139,20 +163,20 @@ export default function SignUpPage() {
                 disabled={isLoading}
                 className="w-full"
               >
-                {isLoading ? "Creating account..." : "Create Account"}
+                {isLoading ? t("creatingAccount") : t("createAccount")}
               </Button>
             </form>
           </CardContent>
 
           <CardFooter className="flex flex-col space-y-4">
             <div className="text-center text-sm text-muted-foreground">
-              Already have an account?{" "}
+              {t("alreadyHaveAnAccount")}{" "}
               <Link href="/auth/login" className="underline underline-offset-4 hover:text-primary">
-                Sign in
+                {t("signIn")}
               </Link>
             </div>
             <div className="pt-4 text-center text-xs text-muted-foreground">
-              Property Management System
+              {t("propertyManagementSystem")}
             </div>
           </CardFooter>
         </Card>

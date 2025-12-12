@@ -1,7 +1,24 @@
 import { NextRequest } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { createClientForRoute } from '@/lib/supabase/server';
 import { cookies } from 'next/headers';
 import { AIRBNB_API } from '@/lib/airbnb/config';
+
+// Helper function to get user from custom auth token
+async function getUserFromCustomAuthToken(request: NextRequest) {
+  const authCookie = request.cookies.get('auth_token')?.value;
+  if (!authCookie) {
+    return null;
+  }
+
+  try {
+    const decodedToken = Buffer.from(authCookie, 'base64').toString('utf-8');
+    const user = JSON.parse(decodedToken);
+    return user;
+  } catch (error) {
+    console.error('Error decoding custom auth token:', error);
+    return null;
+  }
+}
 
 // Airbnb OAuth Configuration
 const AIRBNB_CLIENT_ID = process.env.AIRBNB_CLIENT_ID;
@@ -68,10 +85,10 @@ export async function GET(request: NextRequest) {
 // POST: Exchange authorization code for access token
 export async function POST(request: NextRequest) {
   try {
-    const supabase = createClient();
-    
+    const supabase = await createClientForRoute(request.cookies);
+
     const { code } = await request.json();
-    const codeVerifier = cookies().get('airbnb_code_verifier')?.value;
+    const codeVerifier = request.cookies.get('airbnb_code_verifier')?.value;
 
     if (!code || !codeVerifier) {
       return Response.json({ error: 'Missing authorization code or verifier' }, { status: 400 });
@@ -100,9 +117,30 @@ export async function POST(request: NextRequest) {
 
     const tokenData = await tokenResponse.json();
 
-    // Get the current user
-    const { data: { user }, error } = await supabase.auth.getUser();
-    if (error || !user) {
+    // Try to get the authenticated user from Supabase first
+    let {
+      data: { user: supabaseUser },
+      error: userError
+    } = await supabase.auth.getUser();
+
+    let user = supabaseUser;
+
+    // If Supabase auth failed, try custom auth system
+    if (!user) {
+      const customUser = await getUserFromCustomAuthToken(request);
+      if (customUser) {
+        // Create a minimal user object that matches what Supabase returns
+        user = {
+          id: customUser.id,
+          email: customUser.email,
+          user_metadata: {
+            full_name: customUser.full_name
+          }
+        };
+      }
+    }
+
+    if (!user) {
       return Response.json({ error: 'Not authenticated' }, { status: 401 });
     }
 

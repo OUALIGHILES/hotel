@@ -92,14 +92,14 @@ export default function AirbnbConnectionCard({
 
   return (
     <Card className="overflow-hidden">
-      <CardHeader className="bg-orange-50 relative">
+      <CardHeader className="bg-muted relative">
         <div className="absolute top-4 right-4">
-          <Badge variant={isConnected ? "default" : "secondary"} className={isConnected ? "bg-green-500" : ""}>
+          <Badge variant={isConnected ? "default" : "secondary"}>
             {isConnected ? 'Connected' : 'Disconnected'}
           </Badge>
         </div>
         <CardTitle className="flex items-center gap-3">
-          <div className="p-2 rounded-lg bg-orange-100">
+          <div className="p-2 rounded-lg bg-muted">
             <Globe className="w-6 h-6 text-orange-600" />
           </div>
           <span>Connect to Airbnb</span>
@@ -113,9 +113,9 @@ export default function AirbnbConnectionCard({
       <CardContent className="p-6">
         {isConnected ? (
           <div className="space-y-4">
-            <div className="flex items-center justify-between p-4 bg-orange-50 rounded-lg border border-orange-100">
+            <div className="flex items-center justify-between p-4 bg-muted rounded-lg border">
               <div className="flex items-center gap-3">
-                <div className="p-2 rounded-full bg-orange-100">
+                <div className="p-2 rounded-full bg-muted">
                   <Globe className="w-5 h-5 text-orange-600" />
                 </div>
                 <div>
@@ -137,10 +137,10 @@ export default function AirbnbConnectionCard({
             )}
 
             <div className="pt-4">
-              <Button 
-                onClick={handleDisconnect} 
-                variant="outline" 
-                className="w-full gap-2 border-red-200 text-red-600 hover:bg-red-50"
+              <Button
+                onClick={handleDisconnect}
+                variant="outline"
+                className="w-full gap-2 text-red-600 hover:bg-red-50"
                 disabled={loading}
               >
                 {loading ? (
@@ -159,8 +159,8 @@ export default function AirbnbConnectionCard({
           </div>
         ) : (
           <div className="space-y-6">
-            <div className="flex items-start gap-4 p-4 bg-blue-50 rounded-lg border border-blue-100">
-              <div className="p-2 rounded-full bg-blue-100 mt-0.5">
+            <div className="flex items-start gap-4 p-4 bg-muted rounded-lg border">
+              <div className="p-2 rounded-full bg-muted mt-0.5">
                 <AlertCircle className="w-5 h-5 text-blue-600" />
               </div>
               <div>
@@ -186,8 +186,8 @@ export default function AirbnbConnectionCard({
               </div>
             </div>
 
-            <Button 
-              onClick={handleConnect} 
+            <Button
+              onClick={handleConnect}
               className="w-full gap-2 bg-orange-500 hover:bg-orange-600"
               disabled={loading}
             >
