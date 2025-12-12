@@ -146,9 +146,12 @@ export default function HomePage() {
           </Link>
 
           <div className="hidden md:flex items-center gap-8">
-            <button className="text-sm font-medium text-foreground hover:text-muted-foreground">{t('stays')}</button>
-            <button className="text-sm font-medium text-foreground hover:text-muted-foreground">{t('experiences')}</button>
-            <button className="text-sm font-medium text-foreground hover:text-muted-foreground">{t('onlineExperiences')}</button>
+            <Link href="/packages" className="text-sm font-medium text-foreground hover:text-muted-foreground">
+              {t('packagesOffers')}
+            </Link>
+            <Link href="/support" className="text-sm font-medium text-foreground hover:text-muted-foreground">
+              {t('supportTitle')}
+            </Link>
             <Link href="/messages" className="text-sm font-medium text-foreground hover:text-muted-foreground">
               {t('messages')}
             </Link>

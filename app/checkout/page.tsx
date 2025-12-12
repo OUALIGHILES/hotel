@@ -99,7 +99,7 @@ export default function CheckoutPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-gray-800 dark:to-gray-700 flex items-center justify-center">
         <div className="text-center">
           <Loader2 className="w-12 h-12 animate-spin mx-auto mb-4 text-blue-600" />
           <p className="text-gray-600">Loading checkout...</p>
@@ -110,7 +110,7 @@ export default function CheckoutPage() {
 
   if (!plan) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-gray-800 dark:to-gray-700 flex items-center justify-center">
         <Card className="p-8 text-center">
           <p className="text-gray-600 mb-4">Plan not found</p>
           <Link href="/packages">
@@ -122,9 +122,9 @@ export default function CheckoutPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-gray-800 dark:to-gray-700">
       {/* Header */}
-      <header className="sticky top-0 z-50 bg-background border-b">
+      <header className="sticky top-0 z-50 bg-background border-b dark:bg-gray-900">
         <div className="container mx-auto px-4 py-4 flex items-center gap-4">
           <Link href="/packages" className="flex items-center gap-2 hover:opacity-80">
             <ArrowLeft className="w-5 h-5" />
@@ -187,31 +187,31 @@ export default function CheckoutPage() {
 
             {/* Sidebar */}
             <div>
-              <Card className="p-6 bg-blue-50">
+              <Card className="p-6 bg-blue-50 dark:bg-gray-700">
                 <h3 className="font-semibold mb-4">What You Get</h3>
                 <ul className="space-y-3 text-sm">
                   <li className="flex items-start gap-2">
-                    <span className="text-green-600 font-bold">✓</span>
+                    <span className="text-green-600 dark:text-green-400 font-bold">✓</span>
                     <span>Unlimited properties management</span>
                   </li>
                   <li className="flex items-start gap-2">
-                    <span className="text-green-600 font-bold">✓</span>
+                    <span className="text-green-600 dark:text-green-400 font-bold">✓</span>
                     <span>Advanced PMS dashboard</span>
                   </li>
                   <li className="flex items-start gap-2">
-                    <span className="text-green-600 font-bold">✓</span>
+                    <span className="text-green-600 dark:text-green-400 font-bold">✓</span>
                     <span>Booking management</span>
                   </li>
                   <li className="flex items-start gap-2">
-                    <span className="text-green-600 font-bold">✓</span>
+                    <span className="text-green-600 dark:text-green-400 font-bold">✓</span>
                     <span>Guest communication</span>
                   </li>
                   <li className="flex items-start gap-2">
-                    <span className="text-green-600 font-bold">✓</span>
+                    <span className="text-green-600 dark:text-green-400 font-bold">✓</span>
                     <span>Financial reports</span>
                   </li>
                   <li className="flex items-start gap-2">
-                    <span className="text-green-600 font-bold">✓</span>
+                    <span className="text-green-600 dark:text-green-400 font-bold">✓</span>
                     <span>Payment processing</span>
                   </li>
                 </ul>
