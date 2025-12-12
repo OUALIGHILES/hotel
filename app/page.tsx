@@ -126,13 +126,23 @@ export default function HomePage() {
       <header className="sticky top-0 z-50 bg-background border-b">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2">
-            <Image
-              src="/ChatGPT Image 11 déc. 2025, 18_33_45.png"
-              alt="Wellhost Logo"
-              width={40}
-              height={40}
-            />
-            <div className="text-2xl font-bold text-amber-500 hidden sm:block">Wellhost</div>
+            <div className="relative w-10 h-10">
+              <Image
+                src="/logo_lightmode.png"
+                alt="Wellhost Logo"
+                className="dark:hidden block"
+                width={40}
+                height={40}
+              />
+              <Image
+                src="/logo_darckmode.png"
+                alt="Wellhost Logo"
+                className="hidden dark:block"
+                width={40}
+                height={40}
+              />
+            </div>
+            <div className="text-2xl font-bold text-primary hidden sm:block">Wellhost</div>
           </Link>
 
           <div className="hidden md:flex items-center gap-8">
