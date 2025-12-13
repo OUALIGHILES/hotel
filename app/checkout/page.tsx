@@ -81,17 +81,38 @@ export default function CheckoutPage() {
         }),
       })
 
-      if (!response.ok) throw new Error("Payment initiation failed")
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        console.error("Payment error response:", errorData);
+        const errorMessage = errorData.error || "Payment initiation failed. Please try again.";
+        throw new Error(errorMessage);
+      }
 
       const data = await response.json()
 
       // Redirect to Moyasser payment page
       if (data.paymentUrl) {
         window.location.href = data.paymentUrl
+      } else {
+        throw new Error("No payment URL received from server");
       }
     } catch (error) {
       console.error("Payment error:", error)
-      alert("Failed to initiate payment. Please try again.")
+      let errorMessage = "Failed to initiate payment. Please try again.";
+
+      if (error instanceof Error) {
+        if (error.message.includes("Payment system not configured properly")) {
+          errorMessage = "Payment system is not configured properly. Please contact support.";
+        } else if (error.message.includes("Application URL is not configured")) {
+          errorMessage = "System configuration error. Please contact support.";
+        } else if (error.message.includes("Missing required fields")) {
+          errorMessage = "Required information is missing. Please try again.";
+        } else {
+          errorMessage = `Payment failed: ${error.message}`;
+        }
+      }
+
+      alert(errorMessage);
     } finally {
       setIsProcessing(false)
     }

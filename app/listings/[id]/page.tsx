@@ -28,6 +28,12 @@ interface Listing {
   host_id: string
 }
 
+interface PropertySettings {
+  id: string
+  property_id: string
+  amenities: string[]
+}
+
 interface HostProfile {
   id: string
   full_name: string
@@ -42,6 +48,7 @@ export default function ListingDetailPage() {
 
   const [listing, setListing] = useState<Listing | null>(null)
   const [host, setHost] = useState<HostProfile | null>(null)
+  const [amenities, setAmenities] = useState<string[]>([])
   const [checkInDate, setCheckInDate] = useState("")
   const [checkOutDate, setCheckOutDate] = useState("")
   const [guests, setGuests] = useState(1)
@@ -60,8 +67,77 @@ export default function ListingDetailPage() {
         const { data: profileData } = await supabase.from("profiles").select("*").eq("id", data.host_id).single()
 
         setHost(profileData)
+
+        // Fetch amenities from property settings
+        // First, try to find if this listing corresponds to a property directly
+        let fetchedAmenities: string[] = [];
+
+        try {
+          // Attempt 1: Check if listing ID matches a property ID
+          const { data: propertySettingsByPropertyId, error: propertySettingsError } = await supabase
+            .from("property_settings")
+            .select("amenities")
+            .eq("property_id", listingId)
+            .single();
+
+          if (!propertySettingsError && propertySettingsByPropertyId && propertySettingsByPropertyId.amenities) {
+            fetchedAmenities = propertySettingsByPropertyId.amenities;
+          } else {
+            // Attempt 2: Check if listing ID has a sync record to a unit
+            const { data: syncData, error: syncError } = await supabase
+              .from("listing_sync")
+              .select("pms_unit_id")
+              .eq("external_listing_id", listingId)
+              .single();
+
+            if (!syncError && syncData && syncData.pms_unit_id) {
+              // If we have a unit ID, find the property it belongs to
+              const { data: unitData, error: unitError } = await supabase
+                .from("units")
+                .select("property_id")
+                .eq("id", syncData.pms_unit_id)
+                .single();
+
+              if (!unitError && unitData && unitData.property_id) {
+                const { data: propertySettingsByUnit, error: propertySettingsByUnitError } = await supabase
+                  .from("property_settings")
+                  .select("amenities")
+                  .eq("property_id", unitData.property_id)
+                  .single();
+
+                if (!propertySettingsByUnitError && propertySettingsByUnit && propertySettingsByUnit.amenities) {
+                  fetchedAmenities = propertySettingsByUnit.amenities;
+                }
+              }
+            } else {
+              // Attempt 3: Check if this host has properties and use the first one
+              const { data: hostProperties, error: propertiesError } = await supabase
+                .from("properties")
+                .select("id")
+                .eq("user_id", data.host_id)
+                .limit(1);
+
+              if (!propertiesError && hostProperties && hostProperties.length > 0) {
+                const { data: propertySettingsByHost, error: hostSettingsError } = await supabase
+                  .from("property_settings")
+                  .select("amenities")
+                  .eq("property_id", hostProperties[0].id)
+                  .single();
+
+                if (!hostSettingsError && propertySettingsByHost && propertySettingsByHost.amenities) {
+                  fetchedAmenities = propertySettingsByHost.amenities;
+                }
+              }
+            }
+          }
+        } catch (error) {
+          console.error("Error fetching amenities:", error);
+          // Continue with empty amenities array if all attempts fail
+        }
+
+        setAmenities(fetchedAmenities);
       } catch (error) {
-        console.error("Error fetching listing:", error)
+        console.error("Error fetching listing or amenities:", error)
       } finally {
         setIsLoading(false)
       }
@@ -224,10 +300,25 @@ export default function ListingDetailPage() {
               </div>
             </Card>
 
-            {/* Description */}
+            {/* Description and Amenities */}
             <Card className="p-6">
               <h3 className="font-bold text-lg mb-4">About this listing</h3>
-              <p className="text-gray-700 leading-relaxed">{listing.description || "No description provided"}</p>
+              <p className="text-gray-700 leading-relaxed mb-6">{listing.description || "No description provided"}</p>
+
+              {/* Amenities Section */}
+              {amenities && amenities.length > 0 && (
+                <>
+                  <h4 className="font-bold text-md mb-3">Amenities</h4>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-4">
+                    {amenities.map((amenity, index) => (
+                      <div key={index} className="flex items-center gap-2 text-gray-700">
+                        <div className="w-2 h-2 rounded-full bg-primary"></div>
+                        <span>{amenity}</span>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
             </Card>
           </div>
 

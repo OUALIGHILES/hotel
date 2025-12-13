@@ -334,6 +334,86 @@ export default function ReservationDetailsPage({ params }: { params: { id: strin
     );
   };
 
+  // Moyasser Payment Form Component
+  const MoyasserPaymentForm = ({ reservation, supabase, setReservation, paymentMethod }) => {
+    const [amount, setAmount] = useState("");
+    const [loading, setLoading] = useState(false);
+
+    const handleMoyasserPayment = async () => {
+      if (!reservation) return;
+
+      setLoading(true);
+
+      try {
+        // Determine the payment amount (full amount or partial if specified)
+        const paymentAmount = amount ? parseFloat(amount) : reservation.total_price;
+
+        // Call backend API to initiate Moyasser payment for the reservation
+        const response = await fetch("/api/payment/moyasser", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            planId: null, // For reservation payments, we don't need a plan ID
+            amount: paymentAmount,
+            email: reservation.guest_email,
+            name: reservation.guest_name,
+            reservationId: reservation.id, // Include reservation ID for reference
+          }),
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.error || "Payment initiation failed");
+        }
+
+        const data = await response.json();
+
+        // Redirect to Moyasser payment page
+        if (data.paymentUrl) {
+          window.location.href = data.paymentUrl;
+        } else {
+          throw new Error("No payment URL received from server");
+        }
+      } catch (error) {
+        console.error("Moyasser payment error:", error);
+        alert(`Failed to initiate Moyasser payment: ${error.message || 'Please try again.'}`);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    return (
+      <div className="border rounded-lg p-4 bg-muted">
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium mb-1">Amount (SAR)</label>
+            <input
+              type="number"
+              step="0.01"
+              min="0"
+              max={reservation.total_price}
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
+              className="w-full px-3 py-2 border rounded-lg bg-background text-foreground"
+              placeholder={`Enter payment amount (Max: ${reservation.total_price})`}
+            />
+            <p className="text-xs text-muted-foreground mt-1">
+              Leave empty to pay the full amount: {reservation.total_price} SAR
+            </p>
+          </div>
+
+          <Button
+            onClick={handleMoyasserPayment}
+            disabled={loading}
+            className="w-full bg-blue-600 hover:bg-blue-700"
+          >
+            {loading ? "Processing..." : "Pay with Moyasser"}
+          </Button>
+        </div>
+      </div>
+    );
+  };
+
   // Link Payment Form Component
   const LinkPaymentForm = ({ reservation, supabase, setReservation, paymentMethod }) => {
     const [amount, setAmount] = useState("");
@@ -737,6 +817,14 @@ export default function ReservationDetailsPage({ params }: { params: { id: strin
                       <CreditCard className="w-4 h-4 mr-2" />
                       Link Payment
                     </Button>
+                    <Button
+                      className="w-full justify-start"
+                      variant={paymentMethod === "moyasser" ? "default" : "outline"}
+                      onClick={() => setPaymentMethod("moyasser")}
+                    >
+                      <CreditCard className="w-4 h-4 mr-2" />
+                      Moyasser Payment
+                    </Button>
                   </div>
 
                   {paymentMethod === "cash" && (
@@ -750,6 +838,15 @@ export default function ReservationDetailsPage({ params }: { params: { id: strin
 
                   {paymentMethod === "link" && (
                     <LinkPaymentForm
+                      reservation={reservation}
+                      supabase={supabase}
+                      setReservation={setReservation}
+                      paymentMethod={paymentMethod}
+                    />
+                  )}
+
+                  {paymentMethod === "moyasser" && (
+                    <MoyasserPaymentForm
                       reservation={reservation}
                       supabase={supabase}
                       setReservation={setReservation}
