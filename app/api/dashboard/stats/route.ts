@@ -29,7 +29,8 @@ export async function GET(request: NextRequest) {
     const supabase = await createClient();
 
     // Get current date for filtering today's data
-    const today = new Date().toISOString().split('T')[0];
+    const today = new Date();
+    const todayISO = today.toISOString().split('T')[0]; // Format as YYYY-MM-DD for date comparison
 
     // Get user's properties first (since units are linked to properties)
     const { data: propertiesData, error: propertiesError } = await supabase
@@ -38,6 +39,7 @@ export async function GET(request: NextRequest) {
       .eq("user_id", user.id);
 
     if (propertiesError) {
+      console.error("Database error fetching properties:", propertiesError);
       return new Response(
         JSON.stringify({ error: "Database error fetching properties" }),
         { status: 500, headers: { "Content-Type": "application/json" } }
@@ -54,13 +56,17 @@ export async function GET(request: NextRequest) {
         .in("property_id", propertyIds);
 
       if (unitsError) {
+        console.error("Database error fetching units:", unitsError);
         return new Response(
           JSON.stringify({ error: "Database error fetching units" }),
           { status: 500, headers: { "Content-Type": "application/json" } }
         );
       }
 
-      totalUnits = unitsData?.length || 0;
+      totalUnits = unitsData ? (unitsData as any).count || 0 : 0;
+    } else {
+      // If user has no properties, set totalUnits to 0
+      totalUnits = 0;
     }
 
     // Get reservations for user's units/properties
@@ -77,6 +83,7 @@ export async function GET(request: NextRequest) {
         .in("property_id", propertyIds);
 
       if (unitsError) {
+        console.error("Database error fetching units:", unitsError);
         return new Response(
           JSON.stringify({ error: "Database error fetching units" }),
           { status: 500, headers: { "Content-Type": "application/json" } }
@@ -91,10 +98,11 @@ export async function GET(request: NextRequest) {
           .from("reservations")
           .select("*")
           .in("unit_id", unitIds)
-          .or(`status.eq.confirmed,status.eq.checked_in`)
-          .eq("check_in_date", today);
+          .or("status.eq.confirmed,status.eq.checked_in")
+          .eq("check_in_date", todayISO);
 
         if (todayReservationsError) {
+          console.error("Database error fetching today's reservations:", todayReservationsError);
           return new Response(
             JSON.stringify({ error: "Database error fetching today's reservations" }),
             { status: 500, headers: { "Content-Type": "application/json" } }
@@ -106,9 +114,10 @@ export async function GET(request: NextRequest) {
           .from("reservations")
           .select("*")
           .in("unit_id", unitIds)
-          .or(`status.eq.confirmed,status.eq.checked_in`);
+          .or("status.eq.confirmed,status.eq.checked_in");
 
         if (activeReservationsError) {
+          console.error("Database error fetching active reservations:", activeReservationsError);
           return new Response(
             JSON.stringify({ error: "Database error fetching active reservations" }),
             { status: 500, headers: { "Content-Type": "application/json" } }
@@ -123,6 +132,7 @@ export async function GET(request: NextRequest) {
           .eq("status", "checked_in");
 
         if (currentGuestsError) {
+          console.error("Database error fetching current guests:", currentGuestsError);
           return new Response(
             JSON.stringify({ error: "Database error fetching current guests" }),
             { status: 500, headers: { "Content-Type": "application/json" } }
@@ -151,6 +161,11 @@ export async function GET(request: NextRequest) {
       .order("created_at", { ascending: false })
       .limit(1)
       .single();
+
+    if (subscriptionError && subscriptionError.code !== 'PGRST116') { // PGRST116 is "Row not found"
+      console.error("Database error fetching subscription:", subscriptionError);
+      // We don't return an error here since lack of subscription is not a fatal error
+    }
 
     const subscriptionInfo = subscriptionData ? {
       plan_name: subscriptionData.subscription_plans?.name || "Basic Plan",

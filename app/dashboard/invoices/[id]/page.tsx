@@ -21,6 +21,7 @@ interface Invoice {
   due_date: string
   created_at: string
   property_name?: string
+  property_image?: string | null  // Added property image field
   guest_name?: string
   guest_email?: string
   check_in_date?: string
@@ -140,7 +141,7 @@ export default function InvoiceDetailsPage({ params }: { params: { id: string } 
           receipt_number,
           payment_notes,
           payment_reference,
-          properties (name),
+          properties (name, main_picture_url),
           reservations (guest_name, guest_email, check_in_date, check_out_date)
         `)
         .in("property_id", propertyIds)
@@ -178,6 +179,7 @@ export default function InvoiceDetailsPage({ params }: { params: { id: string } 
         number_of_nights: nights,
         outstanding_balance: balance,
         property_name: data.properties?.name,
+        property_image: data.properties?.main_picture_url,  // Add property image
         guest_name: data.reservations?.guest_name,
         guest_email: data.reservations?.guest_email,
         check_in_date: data.reservations?.check_in_date,
@@ -235,7 +237,12 @@ export default function InvoiceDetailsPage({ params }: { params: { id: string } 
           <title>Invoice ${invoice.invoice_number}</title>
           <style>
             body { font-family: Arial, sans-serif; margin: 20px; }
-            .header { text-align: center; border-bottom: 2px solid #000; padding-bottom: 10px; margin-bottom: 20px; }
+            .header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #000; padding-bottom: 10px; margin-bottom: 20px; }
+            .header-content { flex-grow: 1; text-align: center; }
+            .logo-section { margin-left: auto; text-align: right; }
+            .property-image-section { margin-right: auto; text-align: left; }
+            .property-image { width: 100px; height: 100px; object-fit: cover; border: 1px solid #ddd; }
+            .logo { max-height: 60px; max-width: 120px; }
             .invoice-info { display: flex; justify-content: space-between; margin-bottom: 20px; }
             .billing-details { margin-bottom: 20px; }
             .table { width: 100%; border-collapse: collapse; margin: 20px 0; }
@@ -251,8 +258,16 @@ export default function InvoiceDetailsPage({ params }: { params: { id: string } 
         </head>
         <body>
           <div class="header">
-            <h1>INVOICE</h1>
-            <h2>${invoice.property_name || 'Property'}</h2>
+            <div class="property-image-section">
+              <img src="${invoice.property_image || '/placeholder.svg'}" alt="${invoice.property_name || 'Property'} Picture" class="property-image" onerror="this.src='/placeholder.svg'; this.onerror=null;">
+            </div>
+            <div class="header-content">
+              <h1>INVOICE</h1>
+              <h2>${invoice.property_name || 'Property'}</h2>
+            </div>
+            <div class="logo-section">
+              <img src="/logo_lightmode.png" alt="Welhost Logo" class="logo">
+            </div>
           </div>
 
           <div class="invoice-info">

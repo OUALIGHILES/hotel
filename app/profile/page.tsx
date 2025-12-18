@@ -171,14 +171,36 @@ export default function ProfilePage() {
     const file = e.target.files?.[0];
     if (!file || !user) return;
 
-    // Validate file type
+    // Validate file type and handle potential JSON MIME type issue
+    let correctedFile = file;
     if (!file.type.startsWith('image/')) {
-      alert(t('imageFileTypeError'));
-      return;
+      // Try to determine the correct MIME type from the file extension
+      const fileExtension = file.name.split('.').pop()?.toLowerCase();
+      const mimeTypes: Record<string, string> = {
+        'jpg': 'image/jpeg',
+        'jpeg': 'image/jpeg',
+        'png': 'image/png',
+        'gif': 'image/gif',
+        'webp': 'image/webp',
+        'bmp': 'image/bmp',
+        'svg': 'image/svg+xml',
+        'tiff': 'image/tiff',
+        'ico': 'image/x-icon',
+        'apng': 'image/apng',
+        'avif': 'image/avif'
+      };
+
+      const correctedMimeType = mimeTypes[fileExtension || ''] || 'image/jpeg';
+
+      // Create a new file with the correct MIME type
+      correctedFile = new File([file], file.name, {
+        type: correctedMimeType,
+        lastModified: file.lastModified
+      });
     }
 
-    // Validate file size (max 5MB)
-    if (file.size > 5 * 1024 * 1024) {
+    // Validate file size (max 5MB) - using corrected file to ensure proper size check
+    if (correctedFile.size > 5 * 1024 * 1024) {
       alert(t('imageFileSizeError'));
       return;
     }
@@ -188,7 +210,7 @@ export default function ProfilePage() {
 
     try {
       // Sanitize the filename by removing special characters and spaces
-      const originalName = file.name;
+      const originalName = correctedFile.name;
       const fileExtension = originalName.split('.').pop();
       const sanitizedName = originalName
         .replace(/[^a-zA-Z0-9.-]/g, '_') // Replace special characters with underscore
@@ -201,7 +223,7 @@ export default function ProfilePage() {
       // Upload to Supabase storage
       const { data, error } = await supabase.storage
         .from('profile')
-        .upload(fileName, file, {
+        .upload(fileName, correctedFile, {
           cacheControl: '3600',
           upsert: false
         });

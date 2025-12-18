@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react"
 import { createClient } from "@/lib/supabase/client"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Plus, Edit, Trash2, Lock, Printer, Download, Eye, EyeOff, X, Camera, Users, Bed, Bath, MapPin, DollarSign, Home, Building2 } from "lucide-react"
+import { Plus, Edit, Trash2, Lock, Printer, Download, Eye, EyeOff, X, Camera } from "lucide-react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { useLanguage } from "@/lib/language-context";
 import Image from "next/image";
@@ -1520,410 +1520,271 @@ export default function UnitsPage() {
       </div>
 
       {showForm && (
-        <div className="relative">
-          <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-accent/5 to-secondary/10 -z-10 rounded-3xl"></div>
-          <div className="bg-background/80 backdrop-blur-sm border border-border/50 rounded-3xl shadow-xl overflow-hidden">
-            <div className="p-1 bg-gradient-to-r from-primary/30 via-accent/30 to-primary/30">
-              <div className="bg-card rounded-3xl p-8">
-                <div className="flex items-center gap-3 mb-6">
-                  <div className="p-3 bg-primary/10 rounded-2xl">
-                    <Home className="w-6 h-6 text-primary" />
-                  </div>
-                  <div>
-                    <h2 className="text-2xl font-bold text-foreground">
-                      {editingUnit ? "Update Property Unit" : "Add New Unit"}
-                    </h2>
-                    <p className="text-muted-foreground">
-                      {editingUnit
-                        ? "Modify the details of your existing unit"
-                        : "Create a new unit for your property"}
-                    </p>
-                  </div>
+        <Card className="border rounded-xl shadow-lg">
+          <CardHeader>
+            <CardTitle className="text-xl font-semibold">{editingUnit ? "Edit Unit" : "Add New Unit"}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={editingUnit ? editUnit : addUnit} className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-foreground">Unit Name</label>
+                  <input
+                    name="name"
+                    type="text"
+                    defaultValue={editingUnit?.name || ''}
+                    placeholder="e.g. Room 101"
+                    className="w-full px-4 py-2.5 border rounded-lg bg-muted text-foreground focus:ring-2 focus:ring-primary focus:border-transparent transition-colors"
+                    required
+                  />
                 </div>
 
-                <form onSubmit={editingUnit ? editUnit : addUnit} className="space-y-8">
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                    <div className="space-y-6">
-                      <div className="space-y-2">
-                        <label className="text-sm font-semibold text-foreground flex items-center gap-2">
-                          <Home className="w-4 h-4 text-primary" />
-                          Unit Name
-                        </label>
-                        <input
-                          name="name"
-                          type="text"
-                          defaultValue={editingUnit?.name || ''}
-                          placeholder="e.g. Presidential Suite"
-                          className="w-full px-4 py-4 border-2 border-input rounded-xl bg-background text-foreground focus:ring-2 focus:ring-primary focus:border-primary transition-all duration-200"
-                          required
-                        />
-                        <p className="text-xs text-muted-foreground">Enter a descriptive name for this unit</p>
-                      </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-foreground">Property</label>
+                  <select
+                    name="propertyId"
+                    defaultValue={editingUnit?.property_id || ''}
+                    className="w-full px-4 py-2.5 border rounded-lg bg-muted text-foreground focus:ring-2 focus:ring-primary focus:border-transparent transition-colors"
+                    required
+                  >
+                    <option value="">Select a property</option>
+                    {properties.map(property => (
+                      <option key={property.id} value={property.id}>
+                        {property.name} ({property.city})
+                      </option>
+                    ))}
+                  </select>
+                </div>
 
-                      <div className="space-y-2">
-                        <label className="text-sm font-semibold text-foreground flex items-center gap-2">
-                          <Building2 className="w-4 h-4 text-primary" />
-                          Property
-                        </label>
-                        <select
-                          name="propertyId"
-                          defaultValue={editingUnit?.property_id || ''}
-                          className="w-full px-4 py-4 border-2 border-input rounded-xl bg-background text-foreground focus:ring-2 focus:ring-primary focus:border-primary transition-all duration-200"
-                          required
-                        >
-                          <option value="">Select a property</option>
-                          {properties.map(property => (
-                            <option key={property.id} value={property.id}>
-                              {property.name} ({property.city})
-                            </option>
-                          ))}
-                        </select>
-                        <p className="text-xs text-muted-foreground">Choose the property where this unit is located</p>
-                      </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-foreground">Floor</label>
+                  <input
+                    name="floor"
+                    type="number"
+                    min="0"
+                    defaultValue={editingUnit?.floor || 0}
+                    placeholder="Floor number"
+                    className="w-full px-4 py-2.5 border rounded-lg bg-muted text-foreground focus:ring-2 focus:ring-primary focus:border-transparent transition-colors"
+                    required
+                  />
+                </div>
 
-                      <div className="space-y-2">
-                        <label className="text-sm font-semibold text-foreground flex items-center gap-2">
-                          <Home className="w-4 h-4 text-primary" />
-                          Floor Level
-                        </label>
-                        <input
-                          name="floor"
-                          type="number"
-                          min="0"
-                          defaultValue={editingUnit?.floor || 0}
-                          placeholder="Which floor is this unit on?"
-                          className="w-full px-4 py-4 border-2 border-input rounded-xl bg-background text-foreground focus:ring-2 focus:ring-primary focus:border-primary transition-all duration-200"
-                          required
-                        />
-                        <p className="text-xs text-muted-foreground">Enter the floor number (0 for ground floor)</p>
-                      </div>
-                    </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-foreground">Price per Night ($)</label>
+                  <input
+                    name="price"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    defaultValue={editingUnit?.price_per_night || 0}
+                    placeholder="0.00"
+                    className="w-full px-4 py-2.5 border rounded-lg bg-muted text-foreground focus:ring-2 focus:ring-primary focus:border-transparent transition-colors"
+                    required
+                  />
+                </div>
 
-                    <div className="space-y-6">
-                      <div className="space-y-2">
-                        <label className="text-sm font-semibold text-foreground flex items-center gap-2">
-                          <DollarSign className="w-4 h-4 text-primary" />
-                          Price per Night ($)
-                        </label>
-                        <input
-                          name="price"
-                          type="number"
-                          min="0"
-                          step="0.01"
-                          defaultValue={editingUnit?.price_per_night || 0}
-                          placeholder="0.00"
-                          className="w-full px-4 py-4 border-2 border-input rounded-xl bg-background text-foreground focus:ring-2 focus:ring-primary focus:border-primary transition-all duration-200"
-                          required
-                        />
-                        <p className="text-xs text-muted-foreground">Set the nightly rate for this unit</p>
-                      </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-foreground">Bedrooms</label>
+                  <input
+                    name="bedrooms"
+                    type="number"
+                    min="0"
+                    defaultValue={editingUnit?.bedrooms || 1}
+                    placeholder="Number of bedrooms"
+                    className="w-full px-4 py-2.5 border rounded-lg bg-muted text-foreground focus:ring-2 focus:ring-primary focus:border-transparent transition-colors"
+                    required
+                  />
+                </div>
 
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <label className="text-sm font-semibold text-foreground flex items-center gap-2">
-                            <Bed className="w-4 h-4 text-primary" />
-                            Bedrooms
-                          </label>
-                          <input
-                            name="bedrooms"
-                            type="number"
-                            min="0"
-                            defaultValue={editingUnit?.bedrooms || 1}
-                            placeholder="0"
-                            className="w-full px-4 py-4 border-2 border-input rounded-xl bg-background text-foreground focus:ring-2 focus:ring-primary focus:border-primary transition-all duration-200"
-                            required
-                          />
-                        </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-foreground">Bathrooms</label>
+                  <input
+                    name="bathrooms"
+                    type="number"
+                    min="0"
+                    step="0.5"
+                    defaultValue={editingUnit?.bathrooms || 1}
+                    placeholder="Number of bathrooms"
+                    className="w-full px-4 py-2.5 border rounded-lg bg-muted text-foreground focus:ring-2 focus:ring-primary focus:border-transparent transition-colors"
+                    required
+                  />
+                </div>
 
-                        <div className="space-y-2">
-                          <label className="text-sm font-semibold text-foreground flex items-center gap-2">
-                            <Bath className="w-4 h-4 text-primary" />
-                            Bathrooms
-                          </label>
-                          <input
-                            name="bathrooms"
-                            type="number"
-                            min="0"
-                            step="0.5"
-                            defaultValue={editingUnit?.bathrooms || 1}
-                            placeholder="0"
-                            className="w-full px-4 py-4 border-2 border-input rounded-xl bg-background text-foreground focus:ring-2 focus:ring-primary focus:border-primary transition-all duration-200"
-                            required
-                          />
-                        </div>
-                      </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-foreground">Max Guests</label>
+                  <input
+                    name="maxGuests"
+                    type="number"
+                    min="1"
+                    defaultValue={editingUnit?.max_guests || 2}
+                    placeholder="Maximum number of guests"
+                    className="w-full px-4 py-2.5 border rounded-lg bg-muted text-foreground focus:ring-2 focus:ring-primary focus:border-transparent transition-colors"
+                    required
+                  />
+                </div>
 
-                      <div className="space-y-2">
-                        <label className="text-sm font-semibold text-foreground flex items-center gap-2">
-                          <Users className="w-4 h-4 text-primary" />
-                          Max Guests
-                        </label>
-                        <input
-                          name="maxGuests"
-                          type="number"
-                          min="1"
-                          defaultValue={editingUnit?.max_guests || 2}
-                          placeholder="Maximum number of guests"
-                          className="w-full px-4 py-4 border-2 border-input rounded-xl bg-background text-foreground focus:ring-2 focus:ring-primary focus:border-primary transition-all duration-200"
-                          required
-                        />
-                        <p className="text-xs text-muted-foreground">How many guests can this unit accommodate?</p>
-                      </div>
-                    </div>
-                  </div>
+                <div className="md:col-span-2">
+                  <ImageUpload
+                    label="Main Unit Picture"
+                    description="Upload the main picture of the unit. This will be the primary image displayed for this unit."
+                    onMainImageChange={setMainImageFile}
+                    onAdditionalImagesChange={setAdditionalImageFiles}
+                    mainImagePreview={editingUnit?.main_picture_url || null}
+                    additionalImagePreviews={editingUnit?.additional_pictures_urls || []}
+                    maxAdditionalImages={20}
+                  />
+                </div>
 
-                  <div className="border-t border-border pt-8">
-                    <div className="space-y-2 mb-6">
-                      <label className="text-sm font-semibold text-foreground flex items-center gap-2">
-                        <Camera className="w-4 h-4 text-primary" />
-                        Unit Images
-                      </label>
-                      <p className="text-xs text-muted-foreground">Upload high-quality images to showcase your unit</p>
-                    </div>
-
-                    <div className="relative overflow-hidden rounded-2xl border border-primary/20 shadow-inner">
-                      <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-accent/5 to-secondary/5 -z-10"></div>
-                      <div className="absolute inset-0 bg-[url('data:image/svg+xml,%3Csvg width=\'60\' height=\'60\' viewBox=\'0 0 60 60\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cg fill=\'none\' fill-rule=\'evenodd\'%3E%3Cg fill=\'%239C92AC\' fill-opacity=\'0.05\'%3E%3Ccircle cx=\'30\' cy=\'30\' r=\'2\'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E')] -z-20"></div>
-                      <div className="p-6 backdrop-blur-sm">
-                        <div className="relative">
-                          <div className="absolute -inset-1 bg-gradient-to-r from-primary/20 to-accent/20 rounded-xl blur opacity-30 -z-10"></div>
-                          <ImageUpload
-                            label="Main Unit Picture"
-                            description="Upload the main picture of the unit. This will be the primary image displayed for this unit."
-                            onMainImageChange={setMainImageFile}
-                            onAdditionalImagesChange={setAdditionalImageFiles}
-                            mainImagePreview={editingUnit?.main_picture_url || null}
-                            additionalImagePreviews={editingUnit?.additional_pictures_urls || []}
-                            maxAdditionalImages={20}
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
+                <div className="md:col-span-2">
                   {properties.length === 0 && (
-                    <div className="p-4 bg-destructive/10 border border-destructive/20 rounded-xl text-center">
-                      <p className="text-sm text-muted-foreground italic">
-                        You don't have any properties yet. Please add a property first before adding units.
-                      </p>
-                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      You don't have any properties yet. Please add a property first before adding units.
+                    </p>
                   )}
-
-                  <div className="flex justify-end gap-4 pt-4 border-t border-border">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      className="rounded-full px-8 py-5 text-base font-semibold hover:bg-accent transition-all duration-200"
-                      onClick={() => {
-                        setShowForm(false);
-                        setEditingUnit(null);
-                        setMainImageFile(null);
-                        setAdditionalImageFiles([]);
-                      }}
-                    >
-                      Cancel
-                    </Button>
-                    <Button
-                      type="submit"
-                      className="bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary/80 rounded-full px-10 py-5 text-base font-semibold shadow-lg hover:shadow-xl transition-all duration-300"
-                    >
-                      <div className="flex items-center gap-3">
-                        {editingUnit ? <Edit className="w-5 h-5" /> : <Plus className="w-5 h-5" />}
-                        {editingUnit ? "Update Unit" : "Create Unit"}
-                      </div>
-                    </Button>
-                  </div>
-                </form>
+                </div>
               </div>
-            </div>
-          </div>
-        </div>
+
+              <div className="flex justify-end gap-3 pt-4 border-t border-border">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    setShowForm(false);
+                    setEditingUnit(null);
+                    setMainImageFile(null);
+                    setAdditionalImageFiles([]);
+                  }}
+                >
+                  Cancel
+                </Button>
+                <Button type="submit">{editingUnit ? "Update Unit" : "Add Unit"}</Button>
+              </div>
+            </form>
+          </CardContent>
+        </Card>
       )}
 
       {!showForm && (
         <>
           {isLoading ? (
-            <div className="flex justify-center items-center h-32">
-              <p>Loading units...</p>
-            </div>
+            <p>Loading units...</p>
           ) : filteredUnits.length === 0 ? (
-            <Card className="text-center py-16 border-2 border-dashed">
-              <div className="flex justify-center mb-4">
-                <Home className="w-12 h-12 text-muted-foreground/50" />
-              </div>
-              <h3 className="text-lg font-medium text-foreground mb-1">No units found</h3>
-              <p className="text-muted-foreground max-w-md mx-auto">
-                You haven't added any units yet. Add your first unit to start managing your properties.
-              </p>
+            <Card className="text-center py-12">
+              <p className="text-muted-foreground">No units found in this city. Add your first unit to get started.</p>
             </Card>
           ) : (
-            <div className="space-y-3">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {filteredUnits.map((unit) => {
                 // Find the property for this unit to get city info
                 const property = properties.find(prop => prop.id === unit.property_id);
-
                 return (
-                  <Card
-                    key={unit.id}
-                    className="group border-0 shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden bg-gradient-to-br from-card to-background"
-                  >
-                    <div className="flex flex-col md:flex-row rounded-xl border bg-background overflow-hidden">
-                      {/* Unit Image */}
-                      <div className="md:w-1/4 relative min-h-48 md:min-h-0">
-                        {unit.main_picture_url ? (
-                          <div
-                            className="bg-muted relative w-full h-48 md:h-full cursor-pointer transition-transform duration-300 group-hover:scale-105"
-                            onClick={() => openImageGallery(unit)}
-                          >
-                            <Image
-                              src={unit.main_picture_url}
-                              alt={unit.name}
-                              fill
-                              className="object-cover"
-                              onError={(e) => {
-                                (e.target as HTMLImageElement).src = "/placeholder.svg";
-                              }}
-                            />
-                            <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                            {unit.additional_pictures_urls && unit.additional_pictures_urls.length > 0 && (
-                              <div className="absolute top-3 right-3 bg-black/70 text-white text-xs px-2 py-1 rounded-full flex items-center gap-1">
-                                <Camera className="w-3 h-3" />
-                                {unit.additional_pictures_urls.length}
-                              </div>
-                            )}
-                          </div>
-                        ) : (
-                          <div
-                            className="bg-muted flex items-center justify-center w-full h-48 md:h-full cursor-pointer"
-                            onClick={() => openImageGallery(unit)}
-                          >
-                            <div className="text-muted-foreground text-center p-4">
-                              <div className="bg-muted rounded-full w-12 h-12 flex items-center justify-center mx-auto mb-2">
-                                <Camera className="w-5 h-5" />
-                              </div>
-                              <p className="text-sm">No Image</p>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Unit Details */}
-                      <div className="md:w-3/4 flex flex-col p-6">
-                        <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-3 mb-4">
-                          <div className="flex-1">
-                            <div className="flex items-center gap-3 mb-1">
-                              <h3 className="text-xl font-bold tracking-tight">{unit.name}</h3>
-                              <span className={`px-3 py-1 rounded-full text-xs font-medium ${statusColors[unit.status as keyof typeof statusColors]}`}>
-                                {unit.status}
-                              </span>
-                            </div>
-                            <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
-                              <div className="flex items-center gap-1.5">
-                                <Building2 className="w-4 h-4" />
-                                <span>{property?.name || 'N/A'}</span>
-                              </div>
-                              <div className="flex items-center gap-1.5">
-                                <MapPin className="w-4 h-4" />
-                                <span>{property?.city || 'N/A'}, {property?.country || ''}</span>
-                              </div>
-                              <div className="flex items-center gap-1.5">
-                                <Home className="w-4 h-4" />
-                                <span>Floor {unit.floor || 0}</span>
-                              </div>
-                            </div>
-                          </div>
-
-                          <div className="bg-gradient-to-r from-primary/5 to-accent/5 p-4 rounded-xl text-center min-w-[120px]">
-                            <div className="text-2xl font-bold text-primary">
-                              ${unit.price_per_night}
-                            </div>
-                            <div className="text-xs text-muted-foreground">per night</div>
-                          </div>
+                  <Card key={unit.id} className="hover:shadow-lg transition-shadow flex flex-col">
+                    <div className="relative w-full h-40 bg-muted overflow-hidden">
+                      {unit.main_picture_url ? (
+                        <Image
+                          src={unit.main_picture_url}
+                          alt={unit.name}
+                          fill
+                          className="object-cover cursor-pointer"
+                          onClick={() => openImageGallery(unit)}
+                          onError={(e) => {
+                            e.currentTarget.src = "/placeholder.svg";
+                          }}
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-muted-foreground cursor-pointer"
+                             onClick={() => openImageGallery(unit)}>
+                          No Image
                         </div>
-
-                        {/* Unit Stats */}
-                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-4">
-                          <div className="flex flex-col items-center text-center p-3 bg-muted/30 rounded-lg">
-                            <Bed className="w-5 h-5 text-primary mb-1" />
-                            <div className="text-sm font-medium">{unit.bedrooms}</div>
-                            <div className="text-xs text-muted-foreground">{unit.bedrooms === 1 ? 'Bedroom' : 'Bedrooms'}</div>
-                          </div>
-                          <div className="flex flex-col items-center text-center p-3 bg-muted/30 rounded-lg">
-                            <Bath className="w-5 h-5 text-primary mb-1" />
-                            <div className="text-sm font-medium">{unit.bathrooms}</div>
-                            <div className="text-xs text-muted-foreground">{unit.bathrooms === 1 ? 'Bathroom' : 'Bathrooms'}</div>
-                          </div>
-                          <div className="flex flex-col items-center text-center p-3 bg-muted/30 rounded-lg">
-                            <Users className="w-5 h-5 text-primary mb-1" />
-                            <div className="text-sm font-medium">{unit.max_guests}</div>
-                            <div className="text-xs text-muted-foreground">Guests</div>
-                          </div>
-                          <div className="flex flex-col items-center text-center p-3 bg-muted/30 rounded-lg">
-                            <MapPin className="w-5 h-5 text-primary mb-1" />
-                            <div className="text-sm font-medium">{unit.floor || 0}</div>
-                            <div className="text-xs text-muted-foreground">Floor</div>
-                          </div>
+                      )}
+                      {unit.additional_pictures_urls && unit.additional_pictures_urls.length > 0 && (
+                        <div className="absolute bottom-2 right-2 bg-black/70 text-white text-xs px-2 py-1 rounded">
+                          +{unit.additional_pictures_urls.length}
                         </div>
-
-                        {/* Unit Tasks */}
-                        {unit.tasks && unit.tasks.length > 0 && (
-                          <div className="mb-4">
-                            <div className="flex items-center gap-2 mb-2">
-                              <div className="w-2 h-2 bg-primary rounded-full"></div>
-                              <p className="text-sm font-medium text-foreground">Active Tasks</p>
-                            </div>
-                            <div className="flex flex-wrap gap-2">
-                              {unit.tasks.map((task) => (
-                                <div
-                                  key={task.id}
-                                  className={`px-3 py-2 rounded-lg text-xs flex items-center gap-2 ${getPriorityClass(task.priority)}`}
-                                >
-                                  <div className="w-1.5 h-1.5 rounded-full bg-current"></div>
-                                  <span>{task.title}</span>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-
-                        {/* Action Buttons */}
-                        <div className="flex flex-wrap gap-3 mt-auto pt-4 border-t border-muted">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="gap-2 rounded-full px-4"
-                            onClick={() => {
-                              setEditingUnit(unit);
-                              setMainImageFile(null); // No new main file initially
-                              setAdditionalImageFiles([]); // No new additional files initially
-                              setShowForm(true);
-                            }}
-                          >
-                            <Edit className="w-4 h-4" />
-                            Edit
-                          </Button>
-                          <Button
-                            variant={unit.is_visible ? "outline" : "secondary"}
-                            size="sm"
-                            className="gap-2 rounded-full px-4"
-                            onClick={() => toggleUnitVisibility(unit.id, unit.is_visible)}
-                            title={unit.is_visible ? "Hide from homepage" : "Show on homepage"}
-                          >
-                            {unit.is_visible ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                            {unit.is_visible ? "Hide" : "Show"}
-                          </Button>
-                          <Button
-                            variant="destructive"
-                            size="sm"
-                            className="gap-2 rounded-full px-4"
-                            onClick={() => deleteUnit(unit.id)}
-                          >
-                            <Trash2 className="w-4 h-4" />
-                            Delete
-                          </Button>
-                        </div>
-                      </div>
+                      )}
                     </div>
+
+                    <CardHeader className="pb-3 pt-4">
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1 min-w-0">
+                          <CardTitle className="text-lg truncate">{unit.name}</CardTitle>
+                          <p className="text-sm text-muted-foreground">Floor {unit.floor}</p>
+                          {property && (
+                            <p className="text-xs text-muted-foreground">
+                              {property.city}, {property.country}
+                            </p>
+                          )}
+                        </div>
+                        <span
+                          className={`px-3 py-1 rounded-full text-xs font-medium ${statusColors[unit.status as keyof typeof statusColors]}`}
+                        >
+                          {unit.status}
+                        </span>
+                      </div>
+                    </CardHeader>
+
+                    <CardContent className="flex flex-col flex-1 space-y-4 pb-4">
+                      <p className="text-lg font-bold">${unit.price_per_night}/night</p>
+
+                      <div className="flex gap-4 text-sm text-muted-foreground">
+                        <span>{unit.bedrooms} {unit.bedrooms === 1 ? 'Bedroom' : 'Bedrooms'}</span>
+                        <span>{unit.bathrooms} {unit.bathrooms === 1 ? 'Bathroom' : 'Bathrooms'}</span>
+                        <span>Guests: {unit.max_guests}</span>
+                      </div>
+
+                      {/* Display associated tasks */}
+                      {unit.tasks && unit.tasks.length > 0 && (
+                        <div className="space-y-2 flex-1">
+                          <p className="text-sm font-medium text-foreground">Tasks:</p>
+                          <div className="space-y-1">
+                            {unit.tasks.map((task) => (
+                              <div key={task.id} className="flex items-center justify-between text-sm p-2 bg-muted rounded">
+                                <span className="truncate max-w-[70%]">{task.title}</span>
+                                <span className={`px-2 py-1 rounded-full text-xs ${getPriorityClass(task.priority)}`}>
+                                  {task.status}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      <div className="flex gap-2 mt-auto">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="flex-1 gap-1 bg-transparent"
+                          onClick={() => {
+                            setEditingUnit(unit);
+                            setMainImageFile(null); // No new main file initially
+                            setAdditionalImageFiles([]); // No new additional files initially
+                            setShowForm(true);
+                          }}
+                        >
+                          <Edit className="w-3 h-3" />
+                          Edit
+                        </Button>
+                        <Button
+                          variant={unit.is_visible ? "outline" : "secondary"}
+                          size="sm"
+                          className="flex-1 gap-1"
+                          onClick={() => toggleUnitVisibility(unit.id, unit.is_visible)}
+                          title={unit.is_visible ? "Hide from homepage" : "Show on homepage"}
+                        >
+                          {unit.is_visible ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
+                          {unit.is_visible ? "Hide" : "Show"}
+                        </Button>
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          className="flex-1 gap-1"
+                          onClick={() => deleteUnit(unit.id)}
+                        >
+                          <Trash2 className="w-3 h-3" />
+                          Delete
+                        </Button>
+                      </div>
+                    </CardContent>
                   </Card>
                 );
               })}
