@@ -13,6 +13,8 @@ import { Camera, User, MapPin, Phone, Mail, Upload, CheckCircle2, AlertCircle } 
 import { toast } from "sonner";
 import { validateAndCorrectImageFile } from "@/lib/utils/file-validation";
 
+// Added to force Git to detect changes in the file
+
 export default function ProfilePage() {
   const [user, setUser] = useState<any>(null);
   const [profile, setProfile] = useState<any>(null);

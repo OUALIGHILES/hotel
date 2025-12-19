@@ -18,7 +18,7 @@ interface ChannexChannelsListProps {
   propertyId?: string;
 }
 
-export default function ChannexChannelsList({ userId, propertyId }: ChannexChannelsListProps) {
+export function ChannexChannelsList({ userId, propertyId }: ChannexChannelsListProps) {
   const [channels, setChannels] = useState<ChannexChannel[]>([]);
   const [loading, setLoading] = useState(true);
 

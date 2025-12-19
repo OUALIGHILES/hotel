@@ -15,7 +15,8 @@ import {
   Legend,
   ResponsiveContainer,
 } from "recharts"
-import { TrendingUp, Users, Home, DollarSign, Calendar, Zap, Building2, MapPin, Star } from "lucide-react"
+import { TrendingUp, Users, Home, DollarSign, Calendar, Zap, Building2, MapPin, Star, MessageCircle } from "lucide-react"
+import RatingsAndReviewsDashboard from "@/components/ratings/ratings-dashboard"
 
 interface Stats {
   totalUnits: number
@@ -139,16 +140,6 @@ export default function DashboardPage() {
     },
   ]
 
-  // City options for navigation
-  const cities = [
-    { value: "Riyadh", name: "Riyadh", description: "Capital city" },
-    { value: "Jeddah", name: "Jeddah", description: "Red Sea coastal city" },
-    { value: "Dammam", name: "Dammam", description: "Eastern Province" },
-    { value: "Abha", name: "Abha", description: "Mountain city" },
-    { value: "Al Khobar", name: "Al Khobar", description: "Business hub" },
-    { value: "Madinah", name: "Madinah", description: "Holy city" },
-  ];
-
   // Function to navigate to units page filtered by city
   const navigateToCityUnits = (city: string) => {
     // Since the units page already has city filtering, we'll update the units page URL
@@ -193,30 +184,6 @@ export default function DashboardPage() {
             </Card>
           )
         })}
-      </div>
-
-      {/* City Navigation Cards */}
-      <div>
-        <h2 className="text-xl font-bold mb-4">Cities</h2>
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-          {cities.map((city) => (
-            <Card
-              key={city.value}
-              className="cursor-pointer hover:shadow-md transition-shadow"
-              onClick={() => navigateToCityUnits(city.value)}
-            >
-              <CardContent className="p-4 text-center">
-                <MapPin className="w-6 h-6 mx-auto text-blue-500 mb-2" />
-                <h3 className="font-semibold">{city.name}</h3>
-                <p className="text-xs text-muted-foreground mt-1">{city.description}</p>
-                {/* Count units in this city */}
-                <p className="text-xs mt-2">
-                  {unitStatus.filter(unit => unit.property_city === city.value).length} units
-                </p>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
       </div>
 
       {/* Popular Stays (Units by City) */}
@@ -268,6 +235,19 @@ export default function DashboardPage() {
             <p className="text-muted-foreground">No listings available yet</p>
           </Card>
         )}
+      </div>
+
+      {/* Ratings and Reviews Section */}
+      <div>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-xl font-bold flex items-center gap-2">
+            <Star className="w-5 h-5 text-yellow-500" />
+            <MessageCircle className="w-5 h-5 text-blue-500" />
+            Ratings & Reviews
+          </h2>
+          <p className="text-sm text-muted-foreground">Reviews and ratings for your properties</p>
+        </div>
+        <RatingsAndReviewsDashboard />
       </div>
 
       {/* Charts */}

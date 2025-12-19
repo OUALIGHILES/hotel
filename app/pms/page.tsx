@@ -22,6 +22,18 @@ export default function Page() {
           </Card>
         </Link>
 
+        <Link href="/pms/channex" className="block">
+          <Card className="hover:shadow-lg transition-shadow cursor-pointer border rounded-xl">
+            <CardHeader>
+              <CardTitle className="text-xl font-semibold">Channex Integration</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-muted-foreground">Connect and manage OTA channels</p>
+              <Button className="mt-4 w-full">Connect Channels</Button>
+            </CardContent>
+          </Card>
+        </Link>
+
         <Link href="/dashboard/properties" className="block">
           <Card className="hover:shadow-lg transition-shadow cursor-pointer border rounded-xl">
             <CardHeader>

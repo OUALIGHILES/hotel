@@ -120,7 +120,25 @@ export class ChannexApiService {
     return response.data || [];
   }
 
-  // Push availability/rate updates to Channex
+  // Push availability updates to Channex
+  async pushAvailabilityUpdates(data: any): Promise<any> {
+    const response = await this.makeRequest('/availability', {
+      method: 'POST',
+      body: JSON.stringify(data)
+    });
+    return response;
+  }
+
+  // Push restrictions/price updates to Channex
+  async pushRestrictionsUpdates(data: any): Promise<any> {
+    const response = await this.makeRequest('/restrictions', {
+      method: 'POST',
+      body: JSON.stringify(data)
+    });
+    return response;
+  }
+
+  // Push availability/rate updates to Channex (deprecated - use specific methods)
   async pushUpdates(propertyId: string, data: any): Promise<any> {
     // This would typically call Channex ARI endpoints
     const response = await this.makeRequest('/availability_rates_inventory', {
@@ -130,6 +148,44 @@ export class ChannexApiService {
         ...data
       })
     });
+    return response;
+  }
+
+  // Create a new booking
+  async createBooking(bookingData: any): Promise<any> {
+    const response = await this.makeRequest('/bookings', {
+      method: 'POST',
+      body: JSON.stringify(bookingData)
+    });
+    return response;
+  }
+
+  // Update an existing booking
+  async updateBooking(bookingId: string, bookingData: any): Promise<any> {
+    const response = await this.makeRequest(`/bookings/${bookingId}`, {
+      method: 'PUT',
+      body: JSON.stringify(bookingData)
+    });
+    return response;
+  }
+
+  // Cancel a booking
+  async cancelBooking(bookingId: string, bookingData: any): Promise<any> {
+    const response = await this.makeRequest(`/bookings/${bookingId}`, {
+      method: 'PUT',
+      body: JSON.stringify(bookingData)
+    });
+    return response;
+  }
+
+  // Get all bookings
+  async getBookings(propertyId: string, filters?: any): Promise<any> {
+    let url = `/bookings?property_id=${propertyId}`;
+    if (filters) {
+      const filterParams = new URLSearchParams(filters).toString();
+      url += `&${filterParams}`;
+    }
+    const response = await this.makeRequest(url);
     return response;
   }
 }

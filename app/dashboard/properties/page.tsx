@@ -9,6 +9,8 @@ import { useLanguage } from "@/lib/language-context";
 import { useRouter } from "next/navigation";
 import { validateAndCorrectImageFile } from "@/lib/utils/file-validation";
 
+// Added to force Git to detect changes in the file
+
 interface Property {
   id: string
   name: string

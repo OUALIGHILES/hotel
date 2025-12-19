@@ -42,6 +42,7 @@ export async function GET(request: NextRequest) {
         )
       `)
       .eq("properties.user_id", user.id)
+      .is("is_deleted", false) // Exclude soft-deleted units
       .order("name", { ascending: true });
 
     if (unitsError) {

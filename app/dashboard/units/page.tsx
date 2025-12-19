@@ -11,6 +11,8 @@ import Image from "next/image";
 import { ImageUpload } from "@/components/ui/image-upload";
 import { validateAndCorrectImageFile } from "@/lib/utils/file-validation";
 
+// Added to force Git to detect changes in the file
+
 interface Unit {
   id: string
   name: string
@@ -113,7 +115,8 @@ export default function UnitsPage() {
       let { data: unitsData, error: unitsError } = await supabase
         .from("units")
         .select("*") // Include all columns including is_visible
-        .in("property_id", propertyIds); // Filter by user's property IDs
+        .in("property_id", propertyIds) // Filter by user's property IDs
+        .is("is_deleted", false); // Exclude soft-deleted units
 
       if (unitsError) throw unitsError;
 
@@ -188,7 +191,8 @@ export default function UnitsPage() {
       let { data: unitsData, error: unitsError } = await supabase
         .from("units")
         .select("*") // Include all columns including is_visible
-        .in("property_id", propertyIds); // Filter by user's property IDs
+        .in("property_id", propertyIds) // Filter by user's property IDs
+        .is("is_deleted", false); // Exclude soft-deleted units
 
       if (unitsError) throw unitsError;
 
@@ -890,7 +894,7 @@ export default function UnitsPage() {
       // Actually, let's first get the unit to make sure it belongs to user's properties
       const { data: unitData, error: unitError } = await supabase
         .from("units")
-        .select("property_id")
+        .select("property_id, name")
         .eq("id", unitId)
         .single();
 
@@ -912,16 +916,31 @@ export default function UnitsPage() {
         return;
       }
 
-      // Proceed with deletion
-      const { error: deleteError } = await supabase
+      // Proceed with soft deletion - update the is_deleted column
+      const { error: updateError } = await supabase
         .from("units")
-        .delete()
+        .update({ is_deleted: true })
         .eq("id", unitId);
 
-      if (deleteError) {
-        console.error("Error deleting unit:", deleteError);
-        alert("Error deleting unit: " + deleteError.message);
+      if (updateError) {
+        console.error("Error soft deleting unit:", updateError);
+        alert("Error deleting unit: " + updateError.message);
         return;
+      }
+
+      // Also update the corresponding listing in the listings table to make it inactive
+      const { error: listingError } = await supabase
+        .from("listings")
+        .update({
+          is_active: false,
+          is_visible: false
+        })
+        .ilike("title", `%${unitData.name}%`) // Find the listing by unit name
+        .eq("host_id", userId);
+
+      if (listingError) {
+        console.error("Error updating listing status:", listingError);
+        // Don't return here - still refresh the units list
       }
 
       // Refresh the units list

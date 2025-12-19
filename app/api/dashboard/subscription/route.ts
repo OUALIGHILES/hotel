@@ -29,77 +29,76 @@ export async function GET(request: NextRequest) {
     const supabase = await createClient();
 
     // First, check if user has an active or pending subscription
-    const { data: subscriptionData, error: subscriptionError } = await supabase
-      .from("user_subscriptions")
-      .select("*, subscription_plans(name, price_sar)")
-      .eq("user_id", user.id)
-      .or("status.eq.active,status.eq.pending") // Check for active or pending subscriptions
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .single();
+    let subscriptionData = null;
+    let subscriptionError = null;
 
-    if (subscriptionError && subscriptionError.code !== 'PGRST116') {
-      // If there's an error other than "not found" (no subscription), return error
-      console.error("Error fetching subscription data:", subscriptionError);
-      return new Response(
-        JSON.stringify({ error: "Database error fetching subscription" }),
-        { status: 500, headers: { "Content-Type": "application/json" } }
-      );
+    try {
+      const { data, error } = await supabase
+        .from("user_subscriptions")
+        .select("*, subscription_plans(name, price_sar)")
+        .eq("user_id", user.id)
+        .or("status.eq.active,status.eq.pending") // Check for active or pending subscriptions
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .single();
+
+      subscriptionData = data;
+      subscriptionError = error;
+    } catch (error) {
+      console.error("Error fetching subscription data:", error);
+      subscriptionError = error;
     }
 
     // Check if user has premium status directly set in their profile
-    const { data: profileData, error: profileError } = await supabase
-      .from("profiles")
-      .select("is_premium")
-      .eq("id", user.id)
-      .single();
+    let profileData = null;
+    let profileError = null;
 
-    if (profileError) {
-      console.error("Error fetching profile data:", profileError);
-      // If we can't fetch profile, only rely on subscription status
-      const hasValidSubscription = !!subscriptionData &&
-                                   (subscriptionData.status === 'active' || subscriptionData.status === 'pending');
+    try {
+      const result = await supabase
+        .from("profiles")
+        .select("is_premium")
+        .eq("id", user.id)
+        .single();
 
-      const subscriptionInfo = subscriptionData ? {
-        plan_name: subscriptionData.subscription_plans?.name || "Basic Plan",
-        price: subscriptionData.subscription_plans?.price_sar,
-        status: subscriptionData.status,
-        start_date: subscriptionData.start_date,
-        end_date: subscriptionData.end_date,
-      } : null;
-
-      return new Response(
-        JSON.stringify({
-          hasValidSubscription: hasValidSubscription, // Only consider subscription if profile fetch failed
-          hasValidSubscriptionOnly: hasValidSubscription,
-          hasDirectPremium: false,
-          subscription: subscriptionInfo
-        }),
-        { status: 200, headers: { "Content-Type": "application/json" } }
-      );
+      profileData = result.data;
+      profileError = result.error;
+    } catch (error) {
+      console.error("Error fetching profile data:", error);
+      profileError = error;
     }
 
-    const hasValidSubscription = !!subscriptionData &&
-                                 (subscriptionData.status === 'active' || subscriptionData.status === 'pending');
+    // Default to false if we can't fetch profile
+    const hasDirectPremium = profileData && profileData.is_premium;
+
+    // Determine subscription status
+    let hasValidSubscription = false;
+    let subscriptionInfo = null;
+
+    if (!subscriptionError || subscriptionError.code === 'PGRST116') { // 'PGRST116' means no rows returned
+      hasValidSubscription = !!subscriptionData &&
+                           (subscriptionData.status === 'active' || subscriptionData.status === 'pending');
+
+      if (subscriptionData) {
+        subscriptionInfo = {
+          plan_name: subscriptionData.subscription_plans?.name || "Basic Plan",
+          price: subscriptionData.subscription_plans?.price_sar,
+          status: subscriptionData.status,
+          start_date: subscriptionData.start_date,
+          end_date: subscriptionData.end_date,
+        };
+      }
+    }
 
     // The user has access if they have either:
     // 1. An active/pending subscription OR
     // 2. Direct premium status set in their profile
-    const hasValidAccess = hasValidSubscription || (profileData && profileData.is_premium);
-
-    const subscriptionInfo = subscriptionData ? {
-      plan_name: subscriptionData.subscription_plans?.name || "Basic Plan",
-      price: subscriptionData.subscription_plans?.price_sar,
-      status: subscriptionData.status,
-      start_date: subscriptionData.start_date,
-      end_date: subscriptionData.end_date,
-    } : null;
+    const hasValidAccess = hasValidSubscription || hasDirectPremium;
 
     return new Response(
       JSON.stringify({
-        hasValidSubscription: hasValidAccess, // Changed to include both subscription and direct premium status
-        hasValidSubscriptionOnly: hasValidSubscription, // Keep original for reference
-        hasDirectPremium: !!(profileData && profileData.is_premium), // For debugging
+        hasValidSubscription: hasValidAccess,
+        hasValidSubscriptionOnly: hasValidSubscription,
+        hasDirectPremium: hasDirectPremium,
         subscription: subscriptionInfo
       }),
       { status: 200, headers: { "Content-Type": "application/json" } }
