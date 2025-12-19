@@ -11,6 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useLanguage } from "@/lib/language-context";
 import { Camera, User, MapPin, Phone, Mail, Upload, CheckCircle2, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
+import { validateAndCorrectImageFile } from "@/lib/utils/file-validation";
 
 export default function ProfilePage() {
   const [user, setUser] = useState<any>(null);
@@ -171,36 +172,16 @@ export default function ProfilePage() {
     const file = e.target.files?.[0];
     if (!file || !user) return;
 
-    // Validate file type and handle potential JSON MIME type issue
-    let correctedFile = file;
-    if (!file.type.startsWith('image/')) {
-      // Try to determine the correct MIME type from the file extension
-      const fileExtension = file.name.split('.').pop()?.toLowerCase();
-      const mimeTypes: Record<string, string> = {
-        'jpg': 'image/jpeg',
-        'jpeg': 'image/jpeg',
-        'png': 'image/png',
-        'gif': 'image/gif',
-        'webp': 'image/webp',
-        'bmp': 'image/bmp',
-        'svg': 'image/svg+xml',
-        'tiff': 'image/tiff',
-        'ico': 'image/x-icon',
-        'apng': 'image/apng',
-        'avif': 'image/avif'
-      };
+    // Validate and correct the file using our utility function
+    const { file: validatedFile, error: validationError } = await validateAndCorrectImageFile(file, 'Profile picture');
 
-      const correctedMimeType = mimeTypes[fileExtension || ''] || 'image/jpeg';
-
-      // Create a new file with the correct MIME type
-      correctedFile = new File([file], file.name, {
-        type: correctedMimeType,
-        lastModified: file.lastModified
-      });
+    if (validationError) {
+      alert(validationError);
+      return;
     }
 
-    // Validate file size (max 5MB) - using corrected file to ensure proper size check
-    if (correctedFile.size > 5 * 1024 * 1024) {
+    // Validate file size (max 5MB) - using validated file to ensure proper size check
+    if (validatedFile.size > 5 * 1024 * 1024) {
       alert(t('imageFileSizeError'));
       return;
     }
@@ -210,7 +191,7 @@ export default function ProfilePage() {
 
     try {
       // Sanitize the filename by removing special characters and spaces
-      const originalName = correctedFile.name;
+      const originalName = validatedFile.name;
       const fileExtension = originalName.split('.').pop();
       const sanitizedName = originalName
         .replace(/[^a-zA-Z0-9.-]/g, '_') // Replace special characters with underscore
@@ -223,7 +204,7 @@ export default function ProfilePage() {
       // Upload to Supabase storage
       const { data, error } = await supabase.storage
         .from('profile')
-        .upload(fileName, correctedFile, {
+        .upload(fileName, validatedFile, {
           cacheControl: '3600',
           upsert: false
         });
@@ -234,7 +215,14 @@ export default function ProfilePage() {
         if (error.message.includes('Invalid key')) {
           alert('Filename contains invalid characters. Please rename your file to use only letters, numbers, dots, and hyphens.');
         } else {
-          alert(t('uploadError'));
+          // Check for different types of errors
+          if (error.message.includes('mime type') && error.message.includes('is not supported')) {
+            alert('MIME type error during upload: ' + error.message + '. Supported formats include JPG, PNG, GIF, WEBP, BMP, SVG, and more. Please ensure you\'re uploading a valid image file and try again.');
+          } else if (error.message.includes('permission') || error.message.includes('auth') || error.message.includes('policy')) {
+            alert("Permission error: Unable to upload image. This may be due to storage bucket configuration. Please contact an administrator or check the bucket policies for the 'profile' bucket in Supabase dashboard.");
+          } else {
+            alert("Error uploading profile image: " + error.message + ". If this continues, please check your storage configuration in Supabase dashboard.");
+          }
         }
         return;
       }

@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Plus, Edit, Trash2, MapPin, Clock, Lock } from "lucide-react"
 import { useLanguage } from "@/lib/language-context";
 import { useRouter } from "next/navigation";
+import { validateAndCorrectImageFile } from "@/lib/utils/file-validation";
 
 interface Property {
   id: string
@@ -154,21 +155,13 @@ export default function PropertiesPage() {
       // Upload main picture if provided (after property is created so we have the property ID)
       const mainPictureFile = mainImageFile;
       if (mainPictureFile && mainPictureFile.size > 0) {
-        // Determine the file extension and map it to MIME type for better compatibility
-        const fileExtension = mainPictureFile.name.split('.').pop()?.toLowerCase();
+        // Validate and correct the file using our utility function
+        const { file: validatedFile, error: validationError } = await validateAndCorrectImageFile(mainPictureFile, 'Property picture');
 
-        // More comprehensive list of valid image extensions
-        const validImageExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'svg', 'tiff', 'ico', 'apng', 'avif'];
-        if (fileExtension && !validImageExtensions.includes(fileExtension)) {
-          alert(`Property picture file extension (.${fileExtension}) is not supported. Please use one of the following formats: ${validImageExtensions.join(', ')}`);
+        if (validationError) {
+          alert(validationError);
           return;
         }
-
-        // Create validated file with simple image MIME type fix
-        const validatedFile = new File([mainPictureFile], mainPictureFile.name, {
-          type: mainPictureFile.type.startsWith('image/') ? mainPictureFile.type : 'image/jpeg',
-          lastModified: mainPictureFile.lastModified
-        });
 
         const mainPictureFileName = createSafeFilename(name, insertedProperty.id, validatedFile.name);
 
@@ -183,11 +176,13 @@ export default function PropertiesPage() {
         if (mainPictureError) {
           console.error("Error uploading main picture:", mainPictureError);
 
-          // Specifically check for MIME type errors
+          // Check for different types of errors
           if (mainPictureError.message.includes('mime type') && mainPictureError.message.includes('is not supported')) {
             alert(`MIME type error during upload: ${mainPictureError.message}. Supported formats include JPG, PNG, GIF, WEBP, BMP, SVG, and more. Please ensure you're uploading a valid image file and try again.`);
+          } else if (mainPictureError.message.includes('permission') || mainPictureError.message.includes('auth') || mainPictureError.message.includes('policy')) {
+            alert("Permission error: Unable to upload image. This may be due to storage bucket configuration. Please contact an administrator or check the bucket policies for the 'units' bucket in Supabase dashboard.");
           } else {
-            alert("Error uploading main picture: " + mainPictureError.message);
+            alert("Error uploading main picture: " + mainPictureError.message + ". If this continues, please check your storage configuration in Supabase dashboard.");
           }
           return;
         }
@@ -341,49 +336,13 @@ export default function PropertiesPage() {
       // Handle image update if a new image was selected
       const imageFile = editImageFile;
       if (imageFile && imageFile.size > 0) {
-        // Determine the file extension and map it to MIME type for better compatibility
-        const fileExtension = imageFile.name.split('.').pop()?.toLowerCase();
+        // Validate and correct the file using our utility function
+        const { file: validatedFile, error: validationError } = await validateAndCorrectImageFile(imageFile, 'Property picture');
 
-        // More comprehensive list of valid image extensions
-        const validImageExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'svg', 'tiff', 'ico', 'apng', 'avif'];
-        if (fileExtension && !validImageExtensions.includes(fileExtension)) {
-          alert(`Property picture file extension (.${fileExtension}) is not supported. Please use one of the following formats: ${validImageExtensions.join(', ')}`);
+        if (validationError) {
+          alert(validationError);
           return;
         }
-
-        // Determine correct image MIME type based on file extension if needed
-        // If the file type is not an image or is generic octet-stream, determine from extension
-        let correctedMimeType = imageFile.type;
-        if (fileExtension) {
-          const mimeTypes: Record<string, string> = {
-            'jpg': 'image/jpeg',
-            'jpeg': 'image/jpeg',
-            'png': 'image/png',
-            'gif': 'image/gif',
-            'webp': 'image/webp',
-            'bmp': 'image/bmp',
-            'svg': 'image/svg+xml',
-            'tiff': 'image/tiff',
-            'ico': 'image/x-icon',
-            'apng': 'image/apng',
-            'avif': 'image/avif'
-          };
-          const expectedMimeType = mimeTypes[fileExtension];
-
-          // If the file type is JSON or not an image type, get the correct one from extension
-          if (expectedMimeType &&
-              (imageFile.type === 'application/json' ||
-               imageFile.type === 'application/octet-stream' ||
-               !imageFile.type.startsWith('image/'))) {
-            correctedMimeType = expectedMimeType;
-          }
-        }
-
-        // Create a new File object with corrected MIME type
-        const validatedFile = new File([imageFile], imageFile.name, {
-          type: correctedMimeType,
-          lastModified: imageFile.lastModified
-        });
 
         // Check file type and handle potential JSON MIME type issue after reconstruction
         if (validatedFile.type === 'application/json') {
@@ -425,11 +384,13 @@ export default function PropertiesPage() {
         if (imageUploadError) {
           console.error("Error uploading property image:", imageUploadError);
 
-          // Specifically check for MIME type errors
+          // Check for different types of errors
           if (imageUploadError.message.includes('mime type') && imageUploadError.message.includes('is not supported')) {
             alert(`MIME type error during upload: ${imageUploadError.message}. Supported formats include JPG, PNG, GIF, WEBP, BMP, SVG, and more. Please ensure you're uploading a valid image file and try again.`);
+          } else if (imageUploadError.message.includes('permission') || imageUploadError.message.includes('auth') || imageUploadError.message.includes('policy')) {
+            alert("Permission error: Unable to upload image. This may be due to storage bucket configuration. Please contact an administrator or check the bucket policies for the 'units' bucket in Supabase dashboard.");
           } else {
-            alert("Error uploading property image: " + imageUploadError.message);
+            alert("Error uploading property image: " + imageUploadError.message + ". If this continues, please check your storage configuration in Supabase dashboard.");
           }
           return;
         }

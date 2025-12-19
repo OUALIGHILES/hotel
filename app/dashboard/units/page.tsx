@@ -9,6 +9,7 @@ import { useRouter, useSearchParams } from "next/navigation"
 import { useLanguage } from "@/lib/language-context";
 import Image from "next/image";
 import { ImageUpload } from "@/components/ui/image-upload";
+import { validateAndCorrectImageFile } from "@/lib/utils/file-validation";
 
 interface Unit {
   id: string
@@ -295,48 +296,26 @@ export default function UnitsPage() {
       // Upload main picture if provided
       let mainPictureUrl = null;
       if (mainPictureFile && mainPictureFile.size > 0) {
-        // Validate that the file is an actual File object
-        if (!(mainPictureFile instanceof File)) {
-          console.error("mainPictureFile is not a proper File object:", mainPictureFile);
-          alert('Invalid file object for main picture upload. Please reselect the image.');
+        // Validate and correct the file using our utility function
+        const { file: validatedMainPictureFile, error: validationError } = await validateAndCorrectImageFile(mainPictureFile, 'Main picture');
+
+        if (validationError) {
+          alert(validationError);
           return;
         }
 
-        // Check file type and handle potential JSON MIME type issue
-        let correctedMimeType = mainPictureFile.type;
-        if (!mainPictureFile.type || mainPictureFile.type === 'application/json' || !mainPictureFile.type.startsWith('image/')) {
-          // Try to determine the correct MIME type from the file extension
-          const fileExtension = mainPictureFile.name.split('.').pop()?.toLowerCase();
-          const mimeTypes: Record<string, string> = {
-            'jpg': 'image/jpeg',
-            'jpeg': 'image/jpeg',
-            'png': 'image/png',
-            'gif': 'image/gif',
-            'webp': 'image/webp',
-            'bmp': 'image/bmp',
-            'svg': 'image/svg+xml',
-            'tiff': 'image/tiff',
-            'ico': 'image/x-icon',
-            'apng': 'image/apng',
-            'avif': 'image/avif'
-          };
+        const mainPictureFileName = createSafeFilename(name, propertyId, validatedMainPictureFile.name);
 
-          const extensionMimeType = mimeTypes[fileExtension || ''] || 'image/jpeg';
-          correctedMimeType = extensionMimeType;
-        }
-
-        // Create validated file with correct MIME type
-        const validatedFile = new File([mainPictureFile], mainPictureFile.name, {
-          type: correctedMimeType,
-          lastModified: mainPictureFile.lastModified
-        });
-
-        const mainPictureFileName = createSafeFilename(name, propertyId, validatedFile.name);
+        // Ensure we're uploading with correct file extension-based approach
+        // Get the file extension and ensure it's properly included in the filename
+        const fileExtension = validatedMainPictureFile.name.split('.').pop()?.toLowerCase();
+        const fileNameParts = mainPictureFileName.split('.');
+        const correctedFileName = fileExtension ? `${fileNameParts.slice(0, -1).join('.')}.${fileExtension}` : mainPictureFileName;
 
         const { data: mainPictureUpload, error: mainPictureError } = await supabase
           .storage
           .from('units')
-          .upload(mainPictureFileName, validatedFile, {
+          .upload(correctedFileName, validatedMainPictureFile, {
             cacheControl: '3600',
             upsert: false
           });
@@ -344,11 +323,13 @@ export default function UnitsPage() {
         if (mainPictureError) {
           console.error("Error uploading main picture:", mainPictureError);
 
-          // Specifically check for MIME type errors
+          // Check for different types of errors
           if (mainPictureError.message.includes('mime type') && mainPictureError.message.includes('is not supported')) {
-            alert("MIME type error during upload. Please ensure you're uploading a valid image file and try again.");
+            alert("MIME type error during upload: " + mainPictureError.message + ". Supported formats include JPG, PNG, GIF, WEBP, BMP, SVG, and more. Please ensure you're uploading a valid image file and try again.");
+          } else if (mainPictureError.message.includes('permission') || mainPictureError.message.includes('auth') || mainPictureError.message.includes('policy')) {
+            alert("Permission error: Unable to upload image. This may be due to storage bucket configuration. Please contact an administrator or check the bucket policies for the 'units' bucket in Supabase dashboard.");
           } else {
-            alert("Error uploading main picture: " + mainPictureError.message);
+            alert("Error uploading main picture: " + mainPictureError.message + ". If this continues, please check your storage configuration in Supabase dashboard.");
           }
           return;
         }
@@ -357,7 +338,7 @@ export default function UnitsPage() {
         const { data: { publicUrl } } = supabase
           .storage
           .from('units')
-          .getPublicUrl(mainPictureFileName);
+          .getPublicUrl(correctedFileName);
 
         mainPictureUrl = publicUrl;
       }
@@ -365,60 +346,17 @@ export default function UnitsPage() {
       // Upload additional pictures if provided
       let additionalPicturesUrls: string[] = [];
       if (additionalPicturesFiles && additionalPicturesFiles.length > 0) {
-        const validImageExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'svg', 'tiff', 'ico', 'apng', 'avif'];
-
         for (const file of additionalPicturesFiles) {
-          // Validate that the file is an actual File object
-          if (!(file instanceof File)) {
-            console.error("Additional file is not a proper File object:", file);
-            alert('Invalid file object for additional picture upload. Please reselect the images.');
-            return;
-          }
-
           if (file.size > 0) { // Only upload if file has content
-            // Validate that the file is an image
-            if (!file.type || !file.type.startsWith('image/')) {
-              alert(`File ${file.name} is not an image and will be skipped`);
-              continue; // Skip non-image files
+            // Validate and correct the file using our utility function
+            const { file: validatedFile, error: validationError } = await validateAndCorrectImageFile(file, `Additional picture (${file.name})`);
+
+            if (validationError) {
+              alert(validationError);
+              return;
             }
 
-            // Additional validation based on file extension
-            const addAdditionalFileExtension = file.name.split('.').pop()?.toLowerCase();
-            if (addAdditionalFileExtension && !validImageExtensions.includes(addAdditionalFileExtension)) {
-              alert(`File ${file.name} extension (.${addAdditionalFileExtension}) is not supported. Please use JPG, PNG, GIF, WEBP, or BMP files.`);
-              continue; // Skip unsupported extensions
-            }
-
-            // Check file type and handle potential JSON MIME type issue
-            let correctedMimeType = file.type;
-            if (file.type === 'application/json' || !file.type.startsWith('image/')) {
-              // Try to determine the correct MIME type from the file extension
-              const fileExtension = file.name.split('.').pop()?.toLowerCase();
-              const mimeTypes: Record<string, string> = {
-                'jpg': 'image/jpeg',
-                'jpeg': 'image/jpeg',
-                'png': 'image/png',
-                'gif': 'image/gif',
-                'webp': 'image/webp',
-                'bmp': 'image/bmp',
-                'svg': 'image/svg+xml',
-                'tiff': 'image/tiff',
-                'ico': 'image/x-icon',
-                'apng': 'image/apng',
-                'avif': 'image/avif'
-              };
-
-              const extensionMimeType = mimeTypes[fileExtension || ''] || 'image/jpeg';
-              correctedMimeType = extensionMimeType;
-            }
-
-            // Create validated file with correct MIME type
-            const validatedFile = new File([file], file.name, {
-              type: correctedMimeType,
-              lastModified: file.lastModified
-            });
-
-            const additionalPictureFileName = createSafeFilename(name, propertyId, file.name);
+            const additionalPictureFileName = createSafeFilename(name, propertyId, validatedFile.name);
             const { data: additionalUpload, error: additionalError } = await supabase
               .storage
               .from('units')
@@ -430,12 +368,15 @@ export default function UnitsPage() {
             if (additionalError) {
               console.error("Error uploading additional picture:", additionalError);
 
-              // Specifically check for MIME type errors
+              // Check for different types of errors
               if (additionalError.message.includes('mime type') && additionalError.message.includes('is not supported')) {
-                alert(`MIME type error during upload of ${file.name}. Please ensure you're uploading a valid image file and try again.`);
+                alert(`MIME type error during upload of ${file.name}: ${additionalError.message}. Supported formats include JPG, PNG, GIF, WEBP, BMP, SVG, and more. Please ensure you're uploading a valid image file and try again.`);
+                return;
+              } else if (additionalError.message.includes('permission') || additionalError.message.includes('auth') || additionalError.message.includes('policy')) {
+                alert(`Permission error: Unable to upload image ${file.name}. This may be due to storage bucket configuration. Please contact an administrator or check the bucket policies for the 'units' bucket in Supabase dashboard.`);
                 return;
               } else {
-                alert("Error uploading additional pictures: " + additionalError.message);
+                alert("Error uploading additional pictures: " + additionalError.message + ". If this continues, please check your storage configuration in Supabase dashboard.");
                 return;
               }
             }
@@ -606,41 +547,13 @@ export default function UnitsPage() {
       // Handle main picture upload if provided
       let mainPictureUrl = editingUnit.main_picture_url; // Keep existing URL unless new file provided
       if (mainPictureFile && mainPictureFile.size > 0) {
-        // Validate that the file is an actual File object
-        if (!(mainPictureFile instanceof File)) {
-          console.error("mainPictureFile is not a proper File object:", mainPictureFile);
-          alert('Invalid file object for main picture upload. Please reselect the image.');
+        // Validate and correct the file using our utility function
+        const { file: validatedMainPictureFile, error: validationError } = await validateAndCorrectImageFile(mainPictureFile, 'Main picture');
+
+        if (validationError) {
+          alert(validationError);
           return;
         }
-
-        // Check file type and handle potential JSON MIME type issue
-        let correctedMimeType = mainPictureFile.type;
-        if (!mainPictureFile.type || mainPictureFile.type === 'application/json' || !mainPictureFile.type.startsWith('image/')) {
-          // Try to determine the correct MIME type from the file extension
-          const fileExtension = mainPictureFile.name.split('.').pop()?.toLowerCase();
-          const mimeTypes: Record<string, string> = {
-            'jpg': 'image/jpeg',
-            'jpeg': 'image/jpeg',
-            'png': 'image/png',
-            'gif': 'image/gif',
-            'webp': 'image/webp',
-            'bmp': 'image/bmp',
-            'svg': 'image/svg+xml',
-            'tiff': 'image/tiff',
-            'ico': 'image/x-icon',
-            'apng': 'image/apng',
-            'avif': 'image/avif'
-          };
-
-          const extensionMimeType = mimeTypes[fileExtension || ''] || 'image/jpeg';
-          correctedMimeType = extensionMimeType;
-        }
-
-        // Create validated file with correct MIME type
-        const validatedFile = new File([mainPictureFile], mainPictureFile.name, {
-          type: correctedMimeType,
-          lastModified: mainPictureFile.lastModified
-        });
 
         // Delete old image if it exists
         if (editingUnit.main_picture_url) {
@@ -652,11 +565,17 @@ export default function UnitsPage() {
           }
         }
 
-        const mainPictureFileName = createSafeFilename(name, propertyId, mainPictureFile.name);
+        const mainPictureFileName = createSafeFilename(name, propertyId, validatedMainPictureFile.name);
+        // Ensure we're uploading with correct file extension-based approach
+        // Get the file extension and ensure it's properly included in the filename
+        const fileExtension = validatedMainPictureFile.name.split('.').pop()?.toLowerCase();
+        const fileNameParts = mainPictureFileName.split('.');
+        const correctedFileName = fileExtension ? `${fileNameParts.slice(0, -1).join('.')}.${fileExtension}` : mainPictureFileName;
+
         const { data: mainPictureUpload, error: mainPictureError } = await supabase
           .storage
           .from('units')
-          .upload(mainPictureFileName, validatedFile, {
+          .upload(correctedFileName, validatedMainPictureFile, {
             cacheControl: '3600',
             upsert: false
           });
@@ -664,11 +583,13 @@ export default function UnitsPage() {
         if (mainPictureError) {
           console.error("Error uploading main picture:", mainPictureError);
 
-          // Specifically check for MIME type errors
+          // Check for different types of errors
           if (mainPictureError.message.includes('mime type') && mainPictureError.message.includes('is not supported')) {
-            alert("MIME type error during upload. Please ensure you're uploading a valid image file and try again.");
+            alert("MIME type error during upload: " + mainPictureError.message + ". Supported formats include JPG, PNG, GIF, WEBP, BMP, SVG, and more. Please ensure you're uploading a valid image file and try again.");
+          } else if (mainPictureError.message.includes('permission') || mainPictureError.message.includes('auth') || mainPictureError.message.includes('policy')) {
+            alert("Permission error: Unable to upload image. This may be due to storage bucket configuration. Please contact an administrator or check the bucket policies for the 'units' bucket in Supabase dashboard.");
           } else {
-            alert("Error uploading main picture: " + mainPictureError.message);
+            alert("Error uploading main picture: " + mainPictureError.message + ". If this continues, please check your storage configuration in Supabase dashboard.");
           }
           return;
         }
@@ -677,7 +598,7 @@ export default function UnitsPage() {
         const { data: { publicUrl } } = supabase
           .storage
           .from('units')
-          .getPublicUrl(mainPictureFileName);
+          .getPublicUrl(correctedFileName);
 
         mainPictureUrl = publicUrl;
       }
@@ -696,64 +617,29 @@ export default function UnitsPage() {
         }
 
         const newAdditionalUrls: string[] = [];
-        const validImageExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'svg', 'tiff', 'ico', 'apng', 'avif'];
 
         for (const file of additionalPicturesFiles) {
-          // Validate that the file is an actual File object
-          if (!(file instanceof File)) {
-            console.error("Additional file is not a proper File object:", file);
-            alert('Invalid file object for additional picture upload. Please reselect the images.');
-            return;
-          }
-
           if (file.size > 0) { // Only upload if file has content
-            // Validate that the file is an image
-            if (!file.type || !file.type.startsWith('image/')) {
-              alert(`File ${file.name} is not an image and will be skipped`);
-              continue; // Skip non-image files
+            // Validate and correct the file using our utility function
+            const { file: validatedFile, error: validationError } = await validateAndCorrectImageFile(file, `Additional picture (${file.name})`);
+
+            if (validationError) {
+              alert(validationError);
+              return;
             }
 
-            // Additional validation based on file extension
-            const editAdditionalFileExtension = file.name.split('.').pop()?.toLowerCase();
-            if (editAdditionalFileExtension && !validImageExtensions.includes(editAdditionalFileExtension)) {
-              alert(`File ${file.name} extension (.${editAdditionalFileExtension}) is not supported. Please use one of the following formats: ${validImageExtensions.join(', ')}`);
-              continue; // Skip unsupported extensions
-            }
+            const additionalPictureFileName = createSafeFilename(name, propertyId, validatedFile.name);
 
-            // Check file type and handle potential JSON MIME type issue
-            let correctedMimeType = file.type;
-            if (file.type === 'application/json' || !file.type.startsWith('image/')) {
-              // Try to determine the correct MIME type from the file extension
-              const fileExtension = file.name.split('.').pop()?.toLowerCase();
-              const mimeTypes: Record<string, string> = {
-                'jpg': 'image/jpeg',
-                'jpeg': 'image/jpeg',
-                'png': 'image/png',
-                'gif': 'image/gif',
-                'webp': 'image/webp',
-                'bmp': 'image/bmp',
-                'svg': 'image/svg+xml',
-                'tiff': 'image/tiff',
-                'ico': 'image/x-icon',
-                'apng': 'image/apng',
-                'avif': 'image/avif'
-              };
+            // Ensure we're uploading with correct file extension-based approach
+            // Get the file extension and ensure it's properly included in the filename
+            const fileExtension = validatedFile.name.split('.').pop()?.toLowerCase();
+            const fileNameParts = additionalPictureFileName.split('.');
+            const correctedFileName = fileExtension ? `${fileNameParts.slice(0, -1).join('.')}.${fileExtension}` : additionalPictureFileName;
 
-              const extensionMimeType = mimeTypes[fileExtension || ''] || 'image/jpeg';
-              correctedMimeType = extensionMimeType;
-            }
-
-            // Create validated file with correct MIME type
-            const validatedFile = new File([file], file.name, {
-              type: correctedMimeType,
-              lastModified: file.lastModified
-            });
-
-            const additionalPictureFileName = createSafeFilename(name, propertyId, file.name);
             const { data: additionalUpload, error: additionalError } = await supabase
               .storage
               .from('units')
-              .upload(additionalPictureFileName, validatedFile, {
+              .upload(correctedFileName, validatedFile, {
                 cacheControl: '3600',
                 upsert: false
               });
@@ -761,12 +647,15 @@ export default function UnitsPage() {
             if (additionalError) {
               console.error("Error uploading additional picture:", additionalError);
 
-              // Specifically check for MIME type errors
+              // Check for different types of errors
               if (additionalError.message.includes('mime type') && additionalError.message.includes('is not supported')) {
-                alert(`MIME type error during upload of ${file.name}. Please ensure you're uploading a valid image file and try again.`);
+                alert(`MIME type error during upload of ${file.name}: ${additionalError.message}. Supported formats include JPG, PNG, GIF, WEBP, BMP, SVG, and more. Please ensure you're uploading a valid image file and try again.`);
+                return;
+              } else if (additionalError.message.includes('permission') || additionalError.message.includes('auth') || additionalError.message.includes('policy')) {
+                alert(`Permission error: Unable to upload image ${file.name}. This may be due to storage bucket configuration. Please contact an administrator or check the bucket policies for the 'units' bucket in Supabase dashboard.`);
                 return;
               } else {
-                alert("Error uploading additional pictures: " + additionalError.message);
+                alert("Error uploading additional pictures: " + additionalError.message + ". If this continues, please check your storage configuration in Supabase dashboard.");
                 return;
               }
             }
@@ -775,7 +664,7 @@ export default function UnitsPage() {
             const { data: { publicUrl } } = supabase
               .storage
               .from('units')
-              .getPublicUrl(additionalPictureFileName);
+              .getPublicUrl(correctedFileName);
 
             newAdditionalUrls.push(publicUrl);
           }
@@ -1674,28 +1563,247 @@ export default function UnitsPage() {
 
                   <div className="border-t border-border pt-8">
                     <div className="space-y-2 mb-6">
-                      <label className="text-sm font-semibold text-foreground flex items-center gap-2">
-                        <Camera className="w-4 h-4 text-primary" />
-                        Unit Images
-                      </label>
-                      <p className="text-xs text-muted-foreground">Upload high-quality images to showcase your unit</p>
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 bg-primary/10 rounded-xl">
+                          <Camera className="w-5 h-5 text-primary" />
+                        </div>
+                        <div>
+                          <h3 className="text-lg font-bold text-foreground">Unit Images</h3>
+                          <p className="text-sm text-muted-foreground">Upload high-quality images to showcase your unit</p>
+                        </div>
+                      </div>
                     </div>
 
-                    <div className="relative overflow-hidden rounded-2xl border border-primary/20 shadow-inner">
-                      <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-accent/5 to-secondary/5 -z-10"></div>
-                      <div className="absolute inset-0 bg-[url('data:image/svg+xml,%3Csvg width=\'60\' height=\'60\' viewBox=\'0 0 60 60\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cg fill=\'none\' fill-rule=\'evenodd\'%3E%3Cg fill=\'%239C92AC\' fill-opacity=\'0.05\'%3E%3Ccircle cx=\'30\' cy=\'30\' r=\'2\'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E')] -z-20"></div>
-                      <div className="p-6 backdrop-blur-sm">
-                        <div className="relative">
-                          <div className="absolute -inset-1 bg-gradient-to-r from-primary/20 to-accent/20 rounded-xl blur opacity-30 -z-10"></div>
-                          <ImageUpload
-                            label="Main Unit Picture"
-                            description="Upload the main picture of the unit. This will be the primary image displayed for this unit."
-                            onMainImageChange={setMainImageFile}
-                            onAdditionalImagesChange={setAdditionalImageFiles}
-                            mainImagePreview={editingUnit?.main_picture_url || null}
-                            additionalImagePreviews={editingUnit?.additional_pictures_urls || []}
-                            maxAdditionalImages={20}
-                          />
+                    <div className="space-y-8">
+                      <div className="bg-background rounded-xl border border-border shadow-sm p-6">
+                        <div className="flex items-center gap-2 mb-4">
+                          <Home className="w-4 h-4 text-primary" />
+                          <h4 className="font-semibold text-foreground">Main Unit Picture</h4>
+                        </div>
+                        <p className="text-sm text-muted-foreground mb-4">Upload the main picture of the unit. This will be the primary image displayed for this unit.</p>
+
+                        <div className="space-y-6">
+                          {/* Main Image Upload */}
+                          <div className="space-y-3">
+                            <input
+                              type="file"
+                              id="mainImage"
+                              accept="image/*"
+                              className="hidden"
+                              onChange={(e) => {
+                                if (e.target.files && e.target.files[0]) {
+                                  const file = e.target.files[0];
+
+                                  // Validate that the file is an actual File object
+                                  if (!(file instanceof File)) {
+                                    console.error("Selected file is not a proper File object:", file);
+                                    alert('Invalid file object. Please reselect the image.');
+                                    return;
+                                  }
+
+                                  // Validate that the file is an image
+                                  if (!file.type || !file.type.startsWith('image/')) {
+                                    // Try to determine the correct MIME type from the file extension
+                                    const fileExtension = file.name.split('.').pop()?.toLowerCase();
+                                    const validImageExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'svg', 'tiff', 'ico', 'apng', 'avif'];
+
+                                    if (fileExtension && validImageExtensions.includes(fileExtension)) {
+                                      // Create a new file with the correct MIME type
+                                      const mimeTypes: Record<string, string> = {
+                                        'jpg': 'image/jpeg',
+                                        'jpeg': 'image/jpeg',
+                                        'png': 'image/png',
+                                        'gif': 'image/gif',
+                                        'webp': 'image/webp',
+                                        'bmp': 'image/bmp',
+                                        'svg': 'image/svg+xml',
+                                        'tiff': 'image/tiff',
+                                        'ico': 'image/x-icon',
+                                        'apng': 'image/apng',
+                                        'avif': 'image/avif'
+                                      };
+
+                                      const correctedMimeType = mimeTypes[fileExtension] || 'image/jpeg';
+                                      const validatedFile = new File([file], file.name, {
+                                        type: correctedMimeType,
+                                        lastModified: file.lastModified
+                                      });
+
+                                      setMainImageFile(validatedFile);
+                                    } else {
+                                      alert(`File ${file.name} extension (.${fileExtension}) is not supported. Please use one of the following formats: ${validImageExtensions.join(', ')}`);
+                                      return;
+                                    }
+                                  } else {
+                                    setMainImageFile(file);
+                                  }
+                                }
+                              }}
+                            />
+                            <button
+                              type="button"
+                              onClick={() => document.getElementById('mainImage')?.click()}
+                              className="bg-foreground text-background px-4 py-2 rounded-md text-sm font-medium hover:opacity-90 transition-opacity"
+                            >
+                              Select Main Image
+                            </button>
+
+                            {mainImageFile && (
+                              <div className="preview mt-3">
+                                <Image
+                                  src={URL.createObjectURL(mainImageFile)}
+                                  alt="Main preview"
+                                  width={220}
+                                  height={140}
+                                  className="w-full max-w-xs object-cover rounded-lg shadow-sm"
+                                />
+                              </div>
+                            )}
+
+                            {!mainImageFile && editingUnit?.main_picture_url && (
+                              <div className="preview mt-3">
+                                <Image
+                                  src={editingUnit.main_picture_url}
+                                  alt="Main preview"
+                                  width={220}
+                                  height={140}
+                                  className="w-full max-w-xs object-cover rounded-lg shadow-sm"
+                                />
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Additional Images Upload */}
+                          <div className="space-y-3">
+                            <input
+                              type="file"
+                              id="additionalImages"
+                              accept="image/*"
+                              multiple
+                              className="hidden"
+                              onChange={(e) => {
+                                if (e.target.files) {
+                                  const newFiles = Array.from(e.target.files);
+                                  const validImageExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'svg', 'tiff', 'ico', 'apng', 'avif'];
+                                  const validatedFiles: File[] = [];
+
+                                  for (const file of newFiles) {
+                                    // Validate that the file is an actual File object
+                                    if (!(file instanceof File)) {
+                                      console.error("One of the selected files is not a proper File object:", file);
+                                      alert('Invalid file object. Please reselect the images.');
+                                      return;
+                                    }
+
+                                    // Validate that the file is an image
+                                    if (!file.type || !file.type.startsWith('image/')) {
+                                      // Try to determine the correct MIME type from the file extension
+                                      const fileExtension = file.name.split('.').pop()?.toLowerCase();
+
+                                      if (fileExtension && validImageExtensions.includes(fileExtension)) {
+                                        // Create a new file with the correct MIME type
+                                        const mimeTypes: Record<string, string> = {
+                                          'jpg': 'image/jpeg',
+                                          'jpeg': 'image/jpeg',
+                                          'png': 'image/png',
+                                          'gif': 'image/gif',
+                                          'webp': 'image/webp',
+                                          'bmp': 'image/bmp',
+                                          'svg': 'image/svg+xml',
+                                          'tiff': 'image/tiff',
+                                          'ico': 'image/x-icon',
+                                          'apng': 'image/apng',
+                                          'avif': 'image/avif'
+                                        };
+
+                                        const correctedMimeType = mimeTypes[fileExtension] || 'image/jpeg';
+                                        const validatedFile = new File([file], file.name, {
+                                          type: correctedMimeType,
+                                          lastModified: file.lastModified
+                                        });
+
+                                        validatedFiles.push(validatedFile);
+                                      } else {
+                                        alert(`File ${file.name} extension (.${fileExtension}) is not supported. Please use one of the following formats: ${validImageExtensions.join(', ')}`);
+                                        continue; // Skip this file
+                                      }
+                                    } else {
+                                      validatedFiles.push(file);
+                                    }
+                                  }
+
+                                  if (validatedFiles.length > 0) {
+                                    setAdditionalImageFiles(prev => [...prev, ...validatedFiles]);
+                                  }
+                                }
+                              }}
+                            />
+                            <button
+                              type="button"
+                              onClick={() => document.getElementById('additionalImages')?.click()}
+                              className="bg-foreground text-background px-4 py-2 rounded-md text-sm font-medium hover:opacity-90 transition-opacity"
+                            >
+                              Add Images
+                            </button>
+
+                            {(additionalImageFiles.length > 0 || (editingUnit?.additional_pictures_urls && editingUnit.additional_pictures_urls.length > 0)) && (
+                              <div className="preview-grid mt-3">
+                                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2.5">
+                                  {additionalImageFiles.map((file, index) => (
+                                    <div key={`new-${index}`} className="relative group">
+                                      <Image
+                                        src={URL.createObjectURL(file)}
+                                        alt={`Additional ${index}`}
+                                        width={90}
+                                        height={90}
+                                        className="w-full object-cover rounded-md shadow-sm"
+                                      />
+                                      <button
+                                        type="button"
+                                        className="absolute -top-1.5 -right-1.5 bg-destructive text-destructive-foreground rounded-full w-4 h-4 flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition-opacity"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          const updated = additionalImageFiles.filter((_, i) => i !== index);
+                                          setAdditionalImageFiles(updated);
+                                        }}
+                                      >
+                                        ×
+                                      </button>
+                                    </div>
+                                  ))}
+
+                                  {editingUnit?.additional_pictures_urls && editingUnit.additional_pictures_urls.map((url, index) => (
+                                    <div key={`existing-${index}`} className="relative group">
+                                      <Image
+                                        src={url}
+                                        alt={`Additional ${index}`}
+                                        width={90}
+                                        height={90}
+                                        className="w-full object-cover rounded-md shadow-sm"
+                                      />
+                                      <button
+                                        type="button"
+                                        className="absolute -top-1.5 -right-1.5 bg-destructive text-destructive-foreground rounded-full w-4 h-4 flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition-opacity"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          // For existing images, we would need to handle removal differently
+                                          // This would require more complex logic to track which images to remove
+                                        }}
+                                      >
+                                        ×
+                                      </button>
+                                    </div>
+                                  ))}
+
+                                  {additionalImageFiles.length < 20 && (
+                                    <div className="w-full flex items-center justify-center border border-dashed border-border rounded-md h-22.5">
+                                      <span className="text-sm text-muted-foreground">+{Math.max(0, 20 - additionalImageFiles.length)}</span>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            )}
+                          </div>
                         </div>
                       </div>
                     </div>
